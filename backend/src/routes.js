@@ -11,51 +11,11 @@ import { createPickupRequest, validatePickup } from "./modules/pickup/pickup.ser
 import { resolveBranch } from "./modules/routing/routing.service.js";
 import { buildKnowledgeReply, getServiceHistoryByPlate } from "./modules/knowledge/knowledge.service.js";
 import { escalate } from "./modules/admin/admin.service.js";
+import { sendText, getSessions, startSession, getSessionQR, createSession, healthCheck } from "./modules/waha/waha.service.js";
 import { pool } from "./db/pool.js";
 import { config } from "./config.js";
 
 const router = express.Router();
-
-function getWahaAuthHeadersList(baseHeaders = {}) {
-  const authStrategies = [];
-  if (config.waha.apiKey) {
-    authStrategies.push({ ...baseHeaders, "X-Api-Key": config.waha.apiKey });
-  }
-  if (config.waha.username && config.waha.password) {
-    const auth = Buffer.from(`${config.waha.username}:${config.waha.password}`).toString("base64");
-    authStrategies.push({ ...baseHeaders, Authorization: `Basic ${auth}` });
-  }
-  authStrategies.push(baseHeaders);
-  return authStrategies;
-}
-
-async function wahaRequest(path, options = {}) {
-  const baseHeaders = {
-    "Content-Type": "application/json",
-    ...(options.headers || {})
-  };
-
-  const authStrategies = getWahaAuthHeadersList(baseHeaders);
-
-  let lastStatus = 0;
-  let lastBody = "";
-  for (const headers of authStrategies) {
-    const response = await fetch(`${config.waha.baseUrl}${path}`, {
-      ...options,
-      headers
-    });
-    const body = await response.text();
-    if (response.ok) {
-      return body ? JSON.parse(body) : {};
-    }
-
-    lastStatus = response.status;
-    lastBody = body;
-    if (response.status !== 401) break;
-  }
-
-  throw new Error(`WAHA ${lastStatus}: ${lastBody}`);
-}
 
 router.get("/health", (_req, res) => res.json({ ok: true }));
 
@@ -235,26 +195,65 @@ router.get("/escalations", async (_req, res, next) => {
   }
 });
 
+router.get("/workflow-rules", async (_req, res, next) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT rule_key, enabled
+       FROM workflow_rules
+       ORDER BY rule_key ASC`
+    );
+    const rules = rows.reduce((acc, row) => {
+      acc[row.rule_key] = Boolean(row.enabled);
+      return acc;
+    }, {});
+    res.json({ rules });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put("/workflow-rules", async (req, res, next) => {
+  try {
+    const input = req.body?.rules || {};
+    const entries = Object.entries(input).filter(([k]) => typeof k === "string");
+    if (entries.length === 0) {
+      return res.status(400).json({ error: "bad_request", message: "rules payload is required" });
+    }
+
+    for (const [ruleKey, enabled] of entries) {
+      await pool.query(
+        `INSERT INTO workflow_rules (rule_key, enabled)
+         VALUES (?, ?)
+         ON DUPLICATE KEY UPDATE enabled = VALUES(enabled)`,
+        [ruleKey, Boolean(enabled)]
+      );
+    }
+
+    const [rows] = await pool.query(
+      `SELECT rule_key, enabled
+       FROM workflow_rules
+       ORDER BY rule_key ASC`
+    );
+    const rules = rows.reduce((acc, row) => {
+      acc[row.rule_key] = Boolean(row.enabled);
+      return acc;
+    }, {});
+    res.json({ updated: true, rules });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get("/waha/sessions", async (_req, res, next) => {
   try {
-    const data = await wahaRequest("/api/sessions");
-    const sessions = Array.isArray(data) ? data : data?.sessions || [];
-    if (sessions.length > 0) {
-      return res.json(sessions);
-    }
-    try {
-      const fallback = await wahaRequest("/api/sessions/default");
-      return res.json([fallback]);
-    } catch {
-      return res.json([]);
-    }
+    const sessions = await getSessions();
+    res.json(sessions);
   } catch (error) {
-    if (String(error.message || "").includes("WAHA 401")) {
+    if (error.message.includes("401") || error.message.includes("unauthorized")) {
       return res.json({
-        sessions: [],
-        connected: false,
-        authError: true,
-        message: "WAHA unauthorized. Check WAHA auth env."
+        error: "waha_unauthorized",
+        message: "WAHA unauthorized. Check WAHA credentials in .env",
+        sessions: []
       });
     }
     next(error);
@@ -263,40 +262,34 @@ router.get("/waha/sessions", async (_req, res, next) => {
 
 router.post("/waha/sessions", async (req, res, next) => {
   try {
-    const requestedName = String(req.body?.name || "").trim();
-    if (requestedName && requestedName !== "default") {
+    const requestedName = String(req.body?.name || "").trim() || "default";
+
+    // WAHA Core only supports single 'default' session
+    if (requestedName !== "default") {
       return res.status(400).json({
         error: "bad_request",
-        message:
-          "WAHA Core hanya mendukung 1 session bernama 'default'. Gunakan 'default' atau upgrade ke WAHA Plus untuk multi-session."
+        message: "WAHA Core only supports 'default' session. Use 'default' or upgrade to WAHA Plus for multi-session support."
       });
     }
 
-    const data = await wahaRequest("/api/sessions", {
-      method: "POST",
-      body: JSON.stringify(req.body)
-    });
-
-    res.json(data);
+    const result = await createSession({ name: requestedName, start: req.body?.start ?? true });
+    res.json({ ok: true, ...result });
   } catch (error) {
-    const message = String(error.message || "");
-    if (message.includes("WAHA 422") && message.includes("already exists")) {
-      return res.json({
-        ok: true,
-        alreadyExists: true,
-        message: "Session 'default' sudah ada."
-      });
-    }
     next(error);
   }
 });
 
 router.post("/waha/sessions/:session/start", async (req, res, next) => {
   try {
-    const data = await wahaRequest(`/api/sessions/${req.params.session}/start`, {
-      method: "POST"
-    });
-    res.json(data);
+    const session = req.params.session;
+    if (!session) {
+      return res.status(400).json({
+        error: "bad_request",
+        message: "session name is required"
+      });
+    }
+    const result = await startSession(session);
+    res.json({ ok: true, ...result });
   } catch (error) {
     next(error);
   }
@@ -305,55 +298,24 @@ router.post("/waha/sessions/:session/start", async (req, res, next) => {
 router.get("/waha/sessions/:session/qr", async (req, res, next) => {
   try {
     const session = req.params.session;
-    const candidates = [
-      { path: `/api/sessions/${session}/auth/qr`, method: "GET" },
-      { path: `/api/${session}/auth/qr?format=image`, method: "GET", accept: "image/png" },
-      { path: `/api/sessions/${session}/qr`, method: "GET" },
-      { path: `/api/${session}/auth/qr`, method: "GET" },
-      { path: `/api/sessions/${session}/auth/qr`, method: "POST" },
-      { path: `/api/sessions/${session}/qr`, method: "POST" }
-    ];
-
-    let lastError;
-    for (const candidate of candidates) {
-      try {
-        const baseHeaders = candidate.accept ? { Accept: candidate.accept } : {};
-        const authHeadersList = getWahaAuthHeadersList(baseHeaders);
-        for (const headers of authHeadersList) {
-          const response = await fetch(`${config.waha.baseUrl}${candidate.path}`, {
-            method: candidate.method,
-            headers
-          });
-          const contentType = response.headers.get("content-type") || "";
-          if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`WAHA ${response.status}: ${errorText}`);
-          }
-          if (contentType.includes("image/")) {
-            const buffer = Buffer.from(await response.arrayBuffer());
-            const base64 = buffer.toString("base64");
-            return res.json({ base64, mimeType: contentType });
-          }
-          const text = await response.text();
-          const data = text ? JSON.parse(text) : {};
-          return res.json(data);
-        }
-      } catch (error) {
-        lastError = error;
-      }
-    }
-
-    const lastMessage = String(lastError?.message || "");
-    if (lastMessage.includes("WAHA 404")) {
-      return res.json({
-        qrUnavailable: true,
-        message:
-          "QR endpoint tidak tersedia di versi WAHA ini. Gunakan WAHA dashboard untuk scan QR.",
-        dashboardUrl: config.waha.dashboardUrl
+    if (!session) {
+      return res.status(400).json({
+        error: "bad_request",
+        message: "session name is required"
       });
     }
 
-    throw lastError || new Error("Failed to fetch WAHA QR");
+    try {
+      const qrData = await getSessionQR(session);
+      res.json(qrData);
+    } catch (error) {
+      // QR not available, provide dashboard link
+      res.json({
+        qrUnavailable: true,
+        message: "QR endpoint tidak tersedia di versi WAHA ini. Gunakan WAHA dashboard untuk scan QR.",
+        dashboardUrl: config.waha.dashboardUrl
+      });
+    }
   } catch (error) {
     next(error);
   }
@@ -365,23 +327,22 @@ router.post("/waha/send-text", async (req, res, next) => {
     const chatIdRaw = String(req.body?.chatId || req.body?.to || "").trim();
     const text = String(req.body?.text || "").trim();
 
-    if (!chatIdRaw || !text) {
+    if (!chatIdRaw) {
       return res.status(400).json({
         error: "bad_request",
-        message: "chatId/to and text are required"
+        message: "chatId (or 'to') is required"
       });
     }
 
-    const chatId = /@/.test(chatIdRaw) ? chatIdRaw : `${chatIdRaw}@c.us`;
-    const data = await wahaRequest(`/api/sendText`, {
-      method: "POST",
-      body: JSON.stringify({
-        session,
-        chatId,
-        text
-      })
-    });
-    res.json(data);
+    if (!text) {
+      return res.status(400).json({
+        error: "bad_request",
+        message: "text is required"
+      });
+    }
+
+    const result = await sendText(session, chatIdRaw, text);
+    res.json({ ok: true, ...result });
   } catch (error) {
     next(error);
   }

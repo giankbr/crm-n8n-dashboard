@@ -2,7 +2,13 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "./components/app-sidebar";
-import { BookingSection, EscalationsSection, InboxSection, WahaSection } from "./components/crm-sections";
+import {
+  BookingSection,
+  EscalationsSection,
+  InboxSection,
+  WahaSection,
+  WorkflowRulesSection
+} from "./components/crm-sections";
 import { SectionCards } from "./components/section-cards";
 import { SiteHeader } from "./components/site-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -53,6 +59,8 @@ export default function Page() {
         return <EscalationsSection escalations={escalations} />;
       case "/waha":
         return <WahaSection sessions={sessions} onRefresh={loadAll} />;
+      case "/workflow-rules":
+        return <WorkflowRulesSection />;
       default:
         return (
           <Card>

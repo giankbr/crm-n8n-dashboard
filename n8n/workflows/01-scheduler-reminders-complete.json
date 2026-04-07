@@ -1,0 +1,89 @@
+{
+  "name": "scheduler-reminders",
+  "description": "Daily booking reminder scheduler - sends reminders to customers with bookings",
+  "active": true,
+  "nodes": [
+    {
+      "id": "DailyCron",
+      "name": "Daily Cron (6:30 AM)",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [240, 280],
+      "parameters": {
+        "triggerTimes": {
+          "item": [{"hour": 6, "minute": 30}]
+        }
+      }
+    },
+    {
+      "id": "GetTodayBookings",
+      "name": "Get Today Bookings",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 280],
+      "parameters": {
+        "method": "GET",
+        "url": "=http://backend:4000/api/booking/today"
+      }
+    },
+    {
+      "id": "LoopBookings",
+      "name": "Loop Each Booking",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3,
+      "position": [720, 280],
+      "parameters": {
+        "mode": "splitOut",
+        "fieldToSplitOut": "bookings"
+      }
+    },
+    {
+      "id": "FormatReminder",
+      "name": "Format Reminder Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [940, 280],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "reminder_text",
+              "name": "reminder_text",
+              "type": "string",
+              "value": "=`Halo, mengingatkan booking servis Anda hari ini pukul ${$json.schedule_at} untuk ${$json.vehicle} (${$json.plate}). Apakah masih jadi? ✅`"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "SendReminder",
+      "name": "Send Reminder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1160, 280],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://backend:4000/api/waha/send-text",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": $json.wa_number || '',\n  \"text\": $json.reminder_text || 'Booking reminder'\n}"
+      }
+    }
+  ],
+  "connections": {
+    "Daily Cron (6:30 AM)": {
+      "main": [[{"node": "Get Today Bookings", "type": "main", "index": 0}]]
+    },
+    "Get Today Bookings": {
+      "main": [[{"node": "Loop Each Booking", "type": "main", "index": 0}]]
+    },
+    "Loop Each Booking": {
+      "main": [[{"node": "Format Reminder Message", "type": "main", "index": 0}]]
+    },
+    "Format Reminder Message": {
+      "main": [[{"node": "Send Reminder", "type": "main", "index": 0}]]
+    }
+  }
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -243,5 +243,128 @@ export function WahaSection({ sessions, onRefresh }) {
         </Card>
       ) : null}
     </div>
+  );
+}
+
+const defaultWorkflowRules = {
+  autoReplyFallback: true,
+  autoReplyBooking: true,
+  autoEscalateComplaint: true,
+  pauseAiWhenHumanActive: true,
+  enforceBookingCutoff: true,
+  enableBridgePolling: true
+};
+
+export function WorkflowRulesSection() {
+  const [rules, setRules] = useState(defaultWorkflowRules);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function loadRules() {
+      try {
+        setError("");
+        const data = await api("/workflow-rules");
+        setRules({ ...defaultWorkflowRules, ...(data.rules || {}) });
+      } catch (err) {
+        setError(String(err.message || "Failed to load workflow rules"));
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadRules();
+  }, []);
+
+  async function updateRule(key, value) {
+    const next = { ...rules, [key]: value };
+    setRules(next);
+    setSaving(true);
+    try {
+      setError("");
+      const data = await api("/workflow-rules", {
+        method: "PUT",
+        body: JSON.stringify({ rules: { [key]: value } })
+      });
+      setRules({ ...defaultWorkflowRules, ...(data.rules || next) });
+    } catch (err) {
+      setRules(rules);
+      setError(String(err.message || "Failed to save workflow rule"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const ruleItems = [
+    {
+      key: "autoReplyFallback",
+      title: "Auto reply fallback (Subflow H)",
+      description: "Kirim balasan otomatis ketika intent masuk fallback_admin."
+    },
+    {
+      key: "autoReplyBooking",
+      title: "Auto reply booking (Subflow A)",
+      description: "Kirim konfirmasi otomatis setelah booking dibuat."
+    },
+    {
+      key: "autoEscalateComplaint",
+      title: "Auto escalate complaint",
+      description: "Eskalasi komplain ke admin tanpa approval manual."
+    },
+    {
+      key: "pauseAiWhenHumanActive",
+      title: "Pause AI saat admin aktif",
+      description: "Terapkan AI pause jika thread diambil alih manusia."
+    },
+    {
+      key: "enforceBookingCutoff",
+      title: "Enforce booking cutoff",
+      description: "Aktifkan validasi cutoff jam tutup untuk booking."
+    },
+    {
+      key: "enableBridgePolling",
+      title: "Enable WAHA bridge polling",
+      description: "Gunakan bridge polling WAHA -> n8n saat webhook event tidak tersedia."
+    }
+  ];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Workflow Rules</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {error ? (
+          <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+            {error}
+          </div>
+        ) : null}
+        {ruleItems.map((rule) => (
+          <div
+            key={rule.key}
+            className="flex items-start justify-between gap-3 rounded-md border border-border/80 bg-muted/20 p-3"
+          >
+            <div className="space-y-1">
+              <p className="text-sm font-medium">{rule.title}</p>
+              <p className="text-xs text-muted-foreground">{rule.description}</p>
+            </div>
+            <Button
+              size="sm"
+              variant={rules[rule.key] ? "secondary" : "outline"}
+              className={rules[rule.key] ? "border border-border/60" : ""}
+              onClick={() => updateRule(rule.key, !rules[rule.key])}>
+              {rules[rule.key] ? "Enabled" : "Disabled"}
+            </Button>
+          </div>
+        ))}
+        <p className="text-xs text-muted-foreground">
+          {loading
+            ? "Memuat rules dari server..."
+            : saving
+              ? "Menyimpan perubahan ke server..."
+              : "Rules disimpan di database dan shared ke semua admin."}
+        </p>
+      </CardContent>
+    </Card>
   );
 }
