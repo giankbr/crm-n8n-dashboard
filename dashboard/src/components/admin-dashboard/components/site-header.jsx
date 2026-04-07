@@ -1,4 +1,4 @@
-import { IconMoon, IconSun } from "@tabler/icons-react";
+import { IconChevronRight, IconMoon, IconSun } from "@tabler/icons-react";
 
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -8,8 +8,12 @@ export function SiteHeader({ title = "Control Center", isDarkMode = false, onTog
     <header
       className="bg-background/90 sticky top-0 z-10 flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
       <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
-        <SidebarTrigger className="-ml-1" />
-        <h1 className="text-base font-medium">{title}</h1>
+        <SidebarTrigger className="-ml-1 h-8 w-8 text-foreground hover:bg-muted/70 hover:text-foreground" />
+        <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm">
+          <span className="text-muted-foreground">Dashboard</span>
+          <IconChevronRight className="size-3.5 text-muted-foreground" />
+          <span className="font-medium text-foreground">{title}</span>
+        </nav>
         <div className="ml-auto flex items-center gap-2">
           <Button
             size="sm"

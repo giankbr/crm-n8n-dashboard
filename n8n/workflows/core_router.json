@@ -260,6 +260,148 @@
         "specifyBody": "json",
         "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Jadwal booking yang dipilih terlalu mepet jam tutup. Coba pilih jadwal lain ya 🙏\"\n}"
       }
+    },
+    {
+      "id": "ValidatePickupB",
+      "name": "Validate Pickup (B)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1560,
+        220
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/pickup/validate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"distanceKm\": Number($node[\"WA Webhook\"].json.body?.distanceKm || 1.5)\n}"
+      }
+    },
+    {
+      "id": "PickupInRangeB",
+      "name": "Pickup In Range? (B)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        220
+      ],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json[\"inRange\"]}}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "PickupNeedHumanB",
+      "name": "Pickup Need Human? (B)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        200
+      ],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json[\"requireHumanValidation\"]}}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "CreatePickupAutoB",
+      "name": "Create Pickup Auto (B)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2220,
+        140
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/pickup/create",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"threadId\": $node[\"Persist Message\"].json.threadId,\n  \"distanceKm\": Number($node[\"Validate Pickup (B)\"].json.distanceKm || 1.5),\n  \"estCost\": Number($node[\"Validate Pickup (B)\"].json.estCost || 0),\n  \"requireHumanValidation\": false,\n  \"status\": \"approved\"\n}"
+      }
+    },
+    {
+      "id": "ReplyPickupAutoB",
+      "name": "Reply Pickup Auto (B)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2440,
+        140
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/waha/send-text",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Pickup berhasil dikonfirmasi. Tim kami akan lanjut proses penjemputan sesuai jadwal.\"\n}"
+      }
+    },
+    {
+      "id": "EscalatePickupB",
+      "name": "Escalate Pickup Validation (B)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2220,
+        260
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/handover/escalate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"threadId\": $node[\"Persist Message\"].json.threadId,\n  \"type\": \"pickup_validation\",\n  \"targetRole\": \"cs\",\n  \"reason\": \"Pickup >2km membutuhkan validasi human\"\n}"
+      }
+    },
+    {
+      "id": "ReplyPickupPendingB",
+      "name": "Reply Pickup Pending (B)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2440,
+        260
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/waha/send-text",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Pickup kamu kami terima, tapi perlu validasi admin dulu karena jarak di atas 2 km. Tim kami segera hubungi ya.\"\n}"
+      }
+    },
+    {
+      "id": "ReplyPickupOutRangeB",
+      "name": "Reply Pickup Out of Range (B)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        320
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/waha/send-text",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Maaf, layanan pickup saat ini maksimal 7 km dari bengkel. Kami bisa bantu booking datang langsung ya.\"\n}"
+      }
     }
   ],
   "connections": {
@@ -327,7 +469,13 @@
             "index": 0
           }
         ],
-        [],
+        [
+          {
+            "node": "Validate Pickup (B)",
+            "type": "main",
+            "index": 0
+          }
+        ],
         [],
         [],
         [],
@@ -387,6 +535,75 @@
         [
           {
             "node": "Reply Fallback (H)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Pickup (B)": {
+      "main": [
+        [
+          {
+            "node": "Pickup In Range? (B)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pickup In Range? (B)": {
+      "main": [
+        [
+          {
+            "node": "Pickup Need Human? (B)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reply Pickup Out of Range (B)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pickup Need Human? (B)": {
+      "main": [
+        [
+          {
+            "node": "Escalate Pickup Validation (B)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Pickup Auto (B)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Pickup Auto (B)": {
+      "main": [
+        [
+          {
+            "node": "Reply Pickup Auto (B)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escalate Pickup Validation (B)": {
+      "main": [
+        [
+          {
+            "node": "Reply Pickup Pending (B)",
             "type": "main",
             "index": 0
           }
