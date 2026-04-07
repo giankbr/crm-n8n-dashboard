@@ -7,8 +7,8 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
       "position": [
-        240,
-        300
+        200,
+        320
       ],
       "parameters": {
         "path": "waha/incoming",
@@ -21,8 +21,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        460,
-        300
+        440,
+        320
       ],
       "parameters": {
         "method": "POST",
@@ -39,7 +39,7 @@
       "typeVersion": 4.2,
       "position": [
         680,
-        300
+        320
       ],
       "parameters": {
         "method": "POST",
@@ -61,8 +61,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        900,
-        300
+        920,
+        320
       ],
       "parameters": {
         "conditions": {
@@ -81,15 +81,15 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1120,
-        220
+        1160,
+        320
       ],
       "parameters": {
         "method": "POST",
         "url": "http://backend:4000/api/chat/classify",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"threadId\": $node[\"Persist Message\"].json.threadId || '',\n  \"text\": $node[\"WA Webhook\"].json.body?.body || $node[\"WA Webhook\"].json.body || $node[\"WA Webhook\"].json.text || '',\n  \"metadata\": {\n    \"waNumber\": $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || ''\n  }\n}"
+        "jsonBody": "={\n  \"threadId\": $node[\"Persist Message\"].json.threadId || '',\n  \"text\": $node[\"WA Webhook\"].json.body?.body || $node[\"WA Webhook\"].json.body || $node[\"WA Webhook\"].json.text || '',\n  \"metadata\": {\n    \"waNumber\": $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || '',\n    \"broadcastCode\": $node[\"WA Webhook\"].json.body?.broadcastCode || $node[\"WA Webhook\"].json.broadcastCode || ''\n  }\n}"
       }
     },
     {
@@ -98,8 +98,8 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
       "position": [
-        1340,
-        220
+        1400,
+        320
       ],
       "parameters": {
         "propertyName": "={{$json[\"subflow\"]}}",
@@ -135,6 +135,10 @@
           {
             "operation": "equal",
             "value": "H"
+          },
+          {
+            "operation": "equal",
+            "value": "I"
           }
         ]
       }
@@ -145,8 +149,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1560,
-        460
+        1640,
+        440
       ],
       "parameters": {
         "method": "POST",
@@ -162,8 +166,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1560,
-        60
+        1640,
+        140
       ],
       "parameters": {
         "method": "POST",
@@ -179,8 +183,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        1780,
-        60
+        1880,
+        140
       ],
       "parameters": {
         "conditions": {
@@ -199,8 +203,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2000,
-        20
+        2120,
+        100
       ],
       "parameters": {
         "method": "POST",
@@ -216,15 +220,15 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1780,
-        460
+        1880,
+        440
       ],
       "parameters": {
         "method": "POST",
         "url": "http://backend:4000/api/waha/send-text",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Halo, pesan kamu sudah kami teruskan ke admin kami ya. Mohon tunggu sebentar 🙏\"\n}"
+        "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Halo, pesan kamu sudah kami teruskan ke admin kami ya. Mohon tunggu sebentar \ud83d\ude4f\"\n}"
       }
     },
     {
@@ -233,8 +237,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2220,
-        20
+        2360,
+        100
       ],
       "parameters": {
         "method": "POST",
@@ -250,15 +254,15 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2000,
-        120
+        2120,
+        180
       ],
       "parameters": {
         "method": "POST",
         "url": "http://backend:4000/api/waha/send-text",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Jadwal booking yang dipilih terlalu mepet jam tutup. Coba pilih jadwal lain ya 🙏\"\n}"
+        "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Jadwal booking yang dipilih terlalu mepet jam tutup. Coba pilih jadwal lain ya \ud83d\ude4f\"\n}"
       }
     },
     {
@@ -267,8 +271,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1560,
-        220
+        1640,
+        280
       ],
       "parameters": {
         "method": "POST",
@@ -284,8 +288,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        1780,
-        220
+        1880,
+        280
       ],
       "parameters": {
         "conditions": {
@@ -304,8 +308,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        2000,
-        200
+        2120,
+        260
       ],
       "parameters": {
         "conditions": {
@@ -324,8 +328,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2220,
-        140
+        2360,
+        220
       ],
       "parameters": {
         "method": "POST",
@@ -341,8 +345,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2440,
-        140
+        2600,
+        220
       ],
       "parameters": {
         "method": "POST",
@@ -358,8 +362,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2220,
-        260
+        2360,
+        300
       ],
       "parameters": {
         "method": "POST",
@@ -375,8 +379,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2440,
-        260
+        2600,
+        300
       ],
       "parameters": {
         "method": "POST",
@@ -392,8 +396,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2000,
-        320
+        2120,
+        340
       ],
       "parameters": {
         "method": "POST",
@@ -401,6 +405,264 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Maaf, layanan pickup saat ini maksimal 7 km dari bengkel. Kami bisa bantu booking datang langsung ya.\"\n}"
+      }
+    },
+    {
+      "id": "KnowledgeReplyC",
+      "name": "Knowledge Reply (C)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1640,
+        -120
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/knowledge/reply",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"text\": $node[\"WA Webhook\"].json.body?.body || $node[\"WA Webhook\"].json.body || \"\"\n}"
+      }
+    },
+    {
+      "id": "ReplyFaqC",
+      "name": "Reply FAQ (C)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1880,
+        -120
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/waha/send-text",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": $json.reply || \"Jam operasional kami weekday 08:00-17:00 dan weekend 08:00-16:00 ya.\"\n}"
+      }
+    },
+    {
+      "id": "GetHistoryD",
+      "name": "Get History (D)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1640,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{\"http://backend:4000/api/history/\" + encodeURIComponent((($node[\"WA Webhook\"].json.body?.body || \"\").match(/[A-Za-z]{1,2}\\s?\\d{1,4}\\s?[A-Za-z]{0,3}/)?.[0] || \"B1234XYZ\").replace(/\\s+/g, \"\"))}}"
+      }
+    },
+    {
+      "id": "HistoryFoundD",
+      "name": "History Found? (D)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1880,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{!!$json.history}}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ReplyHistoryFoundD",
+      "name": "Reply History Found (D)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2120,
+        -40
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/waha/send-text",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Riwayat servis ditemukan. Servis terakhir: \" + ($json.history?.last_service_at || \"-\") + \". Catatan: \" + ($json.history?.notes || \"tidak ada\")\n}"
+      }
+    },
+    {
+      "id": "ReplyHistoryNotFoundD",
+      "name": "Reply History Not Found (D)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2120,
+        40
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/waha/send-text",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Maaf, riwayat servis belum ditemukan untuk nopol itu. Bisa kirim ulang format nopolnya ya.\"\n}"
+      }
+    },
+    {
+      "id": "KnowledgeReplyE",
+      "name": "Knowledge Reply (E)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1640,
+        580
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/knowledge/reply",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"text\": $node[\"WA Webhook\"].json.body?.body || $node[\"WA Webhook\"].json.body || \"\"\n}"
+      }
+    },
+    {
+      "id": "ReplyConsultationE",
+      "name": "Reply Consultation (E)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1880,
+        580
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/waha/send-text",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": $json.reply || \"Bisa dijelaskan gejala motornya? Nanti kami bantu rekomendasi awal ya.\"\n}"
+      }
+    },
+    {
+      "id": "ResolveBranchF",
+      "name": "Resolve Branch (F)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1640,
+        720
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/routing/resolve-branch",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"sourceBranch\": $node[\"WA Webhook\"].json.body?.sourceBranch || null,\n  \"customerLat\": Number($node[\"WA Webhook\"].json.body?.customerLat || -6.2),\n  \"customerLng\": Number($node[\"WA Webhook\"].json.body?.customerLng || 106.8)\n}"
+      }
+    },
+    {
+      "id": "TransferAllowedF",
+      "name": "Transfer Allowed? (F)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1880,
+        720
+      ],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.transferAllowed}}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ReplyRoutingSuccessF",
+      "name": "Reply Routing Success (F)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2120,
+        680
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/waha/send-text",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Cabang terdekat untuk kamu: \" + ($json.targetBranch || \"-\") + \" (jarak \" + ($json.distanceKm || \"-\") + \" km).\"\n}"
+      }
+    },
+    {
+      "id": "ReplyRoutingFailF",
+      "name": "Reply Routing Fail (F)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2120,
+        760
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/waha/send-text",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Lokasi kamu belum bisa diproses untuk routing cabang. Boleh kirim share location ya.\"\n}"
+      }
+    },
+    {
+      "id": "EscalateComplaintG",
+      "name": "Escalate Complaint (G)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1640,
+        860
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/handover/escalate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"threadId\": $node[\"Persist Message\"].json.threadId || '',\n  \"type\": \"complaint\",\n  \"targetRole\": \"cs\",\n  \"reason\": \"Auto escalation for complaint intent\"\n}"
+      }
+    },
+    {
+      "id": "ReplyComplaintG",
+      "name": "Reply Complaint (G)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1880,
+        860
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/waha/send-text",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Mohon maaf atas ketidaknyamanannya. Laporan kamu sudah kami eskalasi ke admin untuk ditindaklanjuti.\"\n}"
+      }
+    },
+    {
+      "id": "ReplyCampaignI",
+      "name": "Reply Campaign (I)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1640,
+        1000
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/waha/send-text",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": $node[\"WA Webhook\"].json.body?.broadcastCode === \"CXCT01\"\n    ? \"Promo CXCT01 aktif. Tim kami siap bantu proses booking/pickup kamu sekarang.\"\n    : $node[\"WA Webhook\"].json.body?.broadcastCode === \"CXCT02\"\n      ? \"Terima kasih follow-up CXCT02. Boleh kirim jadwal yang kamu inginkan?\"\n      : $node[\"WA Webhook\"].json.body?.broadcastCode === \"CXCT03\"\n        ? \"Kami terima pesan campaign CXCT03. Jika butuh bantuan admin, langsung ketik *admin* ya.\"\n        : \"Pesan campaign sudah kami terima. Tim kami akan follow-up segera.\"\n}"
       }
     }
   ],
@@ -476,14 +738,51 @@
             "index": 0
           }
         ],
-        [],
-        [],
-        [],
-        [],
-        [],
+        [
+          {
+            "node": "Knowledge Reply (C)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get History (D)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Knowledge Reply (E)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resolve Branch (F)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Escalate Complaint (G)",
+            "type": "main",
+            "index": 0
+          }
+        ],
         [
           {
             "node": "Escalate Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reply Campaign (I)",
             "type": "main",
             "index": 0
           }
@@ -604,6 +903,97 @@
         [
           {
             "node": "Reply Pickup Pending (B)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Knowledge Reply (C)": {
+      "main": [
+        [
+          {
+            "node": "Reply FAQ (C)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get History (D)": {
+      "main": [
+        [
+          {
+            "node": "History Found? (D)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "History Found? (D)": {
+      "main": [
+        [
+          {
+            "node": "Reply History Found (D)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reply History Not Found (D)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Knowledge Reply (E)": {
+      "main": [
+        [
+          {
+            "node": "Reply Consultation (E)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Branch (F)": {
+      "main": [
+        [
+          {
+            "node": "Transfer Allowed? (F)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transfer Allowed? (F)": {
+      "main": [
+        [
+          {
+            "node": "Reply Routing Success (F)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reply Routing Fail (F)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escalate Complaint (G)": {
+      "main": [
+        [
+          {
+            "node": "Reply Complaint (G)",
             "type": "main",
             "index": 0
           }

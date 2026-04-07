@@ -26,13 +26,39 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "http://waha:3000/api/sendText",
-        "sendBody": true
+        "url": "http://backend:4000/api/waha/send-text",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"session\": $json.session,\n  \"chatId\": $json.chatId,\n  \"text\": $json.text\n}"
+      }
+    },
+    {
+      "id": "BuildEscalationMessage",
+      "name": "Build Escalation Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        280
+      ],
+      "parameters": {
+        "jsCode": "const body = $json.body || $json;\nconst threadId = String(body.threadId || body.thread_id || '');\nconst fallbackChatId = threadId.startsWith('thr_') ? threadId.replace('thr_', '') : '';\nconst targetChatId = String(body.adminChatId || body.chatId || fallbackChatId || '');\nconst type = body.type || 'escalation';\nconst reason = body.reason || 'No reason provided';\n\nreturn [{\n  json: {\n    session: 'default',\n    chatId: targetChatId,\n    text: `[ESCALATION] type=${type} thread=${threadId || '-'} reason=${reason}`\n  }\n}];"
       }
     }
   ],
   "connections": {
     "Escalation Webhook": {
+      "main": [
+        [
+          {
+            "node": "Build Escalation Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Escalation Message": {
       "main": [
         [
           {

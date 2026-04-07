@@ -34,6 +34,69 @@
         "method": "GET",
         "url": "http://backend:4000/api/booking/today"
       }
+    },
+    {
+      "id": "ExpandBookings",
+      "name": "Expand Bookings",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        760,
+        280
+      ],
+      "parameters": {
+        "jsCode": "const rows = $json.bookings || [];\nreturn rows.map((b) => ({ json: b }));"
+      }
+    },
+    {
+      "id": "BuildReminderText",
+      "name": "Build Reminder Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1020,
+        280
+      ],
+      "parameters": {
+        "jsCode": "const b = $json;\nconst threadId = String(b.thread_id || '');\nconst waNumber = threadId.startsWith('thr_') ? threadId.replace('thr_', '') : '';\nconst schedule = b.schedule_at || '-';\nreturn [{\n  json: {\n    session: 'default',\n    chatId: waNumber,\n    text: `Reminder servis hari ini jam ${schedule}. Mohon konfirmasi kehadiran ya.`\n  }\n}];"
+      }
+    },
+    {
+      "id": "HasChatId",
+      "name": "Has ChatId?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1260,
+        280
+      ],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.chatId}}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "SendReminderWA",
+      "name": "Send Reminder WA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1500,
+        240
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/waha/send-text",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"session\": $json.session,\n  \"chatId\": $json.chatId,\n  \"text\": $json.text\n}"
+      }
     }
   ],
   "connections": {
@@ -46,6 +109,51 @@
             "index": 0
           }
         ]
+      ]
+    },
+    "Get Today Bookings": {
+      "main": [
+        [
+          {
+            "node": "Expand Bookings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expand Bookings": {
+      "main": [
+        [
+          {
+            "node": "Build Reminder Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Reminder Text": {
+      "main": [
+        [
+          {
+            "node": "Has ChatId?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has ChatId?": {
+      "main": [
+        [
+          {
+            "node": "Send Reminder WA",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
       ]
     }
   }
