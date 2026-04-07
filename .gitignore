@@ -9,6 +9,9 @@ waha_data/
 # Logs
 *.log
 
+# Dependencies
+node_modules/
+
 # Dashboard frontend
 dashboard/node_modules/
 dashboard/dist/

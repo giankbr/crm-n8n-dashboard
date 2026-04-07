@@ -15,6 +15,35 @@ services:
     volumes:
       - ./waha_data:/app/.waha
 
+  waha-bridge:
+    build:
+      context: ./scripts
+      dockerfile: Dockerfile
+    container_name: waha_bridge
+    restart: unless-stopped
+    environment:
+      - WAHA_BASE_URL=http://waha:3000
+      - WAHA_SESSION=${WAHA_SESSION:-default}
+      - N8N_WEBHOOK_URL=http://n8n:5678/webhook/waha/incoming
+      - WAHA_POLL_MS=${WAHA_POLL_MS:-3000}
+      - WAHA_API_KEY=${WAHA_API_KEY:-}
+    depends_on:
+      waha:
+        condition: service_started
+      n8n:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "node", "-e", "if (!process.env.WAHA_BASE_URL) throw new Error('Not healthy')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   n8n:
     image: docker.n8n.io/n8nio/n8n
     container_name: n8n
