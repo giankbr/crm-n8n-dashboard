@@ -15,6 +15,7 @@ export async function getGhostingLeads({ hours = config.ghosting.hours, limit = 
     JOIN messages m ON m.thread_id = t.thread_id
     WHERE t.status = 'active'
       AND t.non_ai = FALSE
+      AND COALESCE(t.lead_status, 'open') <> 'followup_sent'
       AND (t.ai_paused_until IS NULL OR t.ai_paused_until < NOW())
     GROUP BY t.thread_id, t.wa_number
     HAVING last_incoming_at IS NOT NULL

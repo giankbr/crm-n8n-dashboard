@@ -23,6 +23,7 @@ export function validateBookingWindow(scheduleAt, branchCloseHour = "17:00", wee
 }
 
 export async function createBooking(payload) {
+  const normalizedScheduleAt = normalizeScheduleAt(payload.scheduleAt);
   const [result] = await pool.query(
     `INSERT INTO bookings
       (customer_id, thread_id, vehicle, plate, service_type, schedule_at, branch_id, pickup_flag, status)
@@ -33,12 +34,30 @@ export async function createBooking(payload) {
       payload.vehicle,
       payload.plate,
       payload.serviceType || null,
-      payload.scheduleAt,
+      normalizedScheduleAt,
       payload.branchId || null,
       payload.pickupFlag ? 1 : 0
     ]
   );
   return { bookingId: result.insertId };
+}
+
+function normalizeScheduleAt(value) {
+  if (!value) {
+    const err = new Error("scheduleAt is required");
+    err.status = 400;
+    throw err;
+  }
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    const err = new Error("Invalid scheduleAt format");
+    err.status = 400;
+    throw err;
+  }
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(
+    date.getMinutes()
+  )}:${pad(date.getSeconds())}`;
 }
 
 export async function getBookingById(bookingId) {
