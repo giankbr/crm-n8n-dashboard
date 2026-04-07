@@ -1,0 +1,112 @@
+.layout {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.tabs-list {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.tabs-trigger {
+  border: 1px solid #d9dbe3;
+  border-radius: 8px;
+  background: #fff;
+  padding: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1.2fr;
+  gap: 16px;
+}
+
+.single-col {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.card {
+  border: 1px solid #d9dbe3;
+  border-radius: 10px;
+  padding: 16px;
+  background: #fff;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 420px;
+  overflow: auto;
+}
+
+.thread {
+  text-align: left;
+  border: 1px solid #d9dbe3;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.thread.active {
+  border-color: #5a67d8;
+  background: #eef2ff;
+}
+
+.messages {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 360px;
+  overflow: auto;
+}
+
+.message {
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+.message.incoming {
+  background: #f3f4f6;
+}
+
+.message.outgoing {
+  background: #dcfce7;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+button,
+input {
+  border: 1px solid #d9dbe3;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #fff;
+}
+
+.error {
+  color: #b91c1c;
+}

@@ -1,0 +1,17 @@
+.env
+.DS_Store
+
+# Runtime and local data
+mysql_data/
+n8n_data/
+waha_data/
+
+# Logs
+*.log
+
+# Dashboard frontend
+dashboard/node_modules/
+dashboard/dist/
+
+# Optional generated artifacts
+qr.png
