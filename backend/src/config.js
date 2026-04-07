@@ -12,6 +12,13 @@ export const config = {
     database: process.env.MYSQL_DATABASE || "chatbot_crm"
   },
   aiPauseMinutes: Number(process.env.AI_PAUSE_MINUTES || 15),
+  ghosting: {
+    hours: Number(process.env.GHOSTING_HOURS || 24),
+    limit: Number(process.env.GHOSTING_LIMIT || 100)
+  },
+  googleSheets: {
+    webhookUrl: process.env.GOOGLE_SHEETS_WEBHOOK_URL || ""
+  },
   waha: {
     baseUrl: process.env.WAHA_BASE_URL || "http://host.docker.internal:3000",
     dashboardUrl: process.env.WAHA_DASHBOARD_URL || "http://localhost:3000",

@@ -228,7 +228,7 @@
         "url": "http://backend:4000/api/waha/send-text",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Halo, pesan kamu sudah kami teruskan ke admin kami ya. Mohon tunggu sebentar \ud83d\ude4f\"\n}"
+        "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Halo, pesan kamu sudah kami teruskan ke admin kami ya. Mohon tunggu sebentar 🙏\"\n}"
       }
     },
     {
@@ -262,7 +262,7 @@
         "url": "http://backend:4000/api/waha/send-text",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Jadwal booking yang dipilih terlalu mepet jam tutup. Coba pilih jadwal lain ya \ud83d\ude4f\"\n}"
+        "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Jadwal booking yang dipilih terlalu mepet jam tutup. Coba pilih jadwal lain ya 🙏\"\n}"
       }
     },
     {
@@ -664,6 +664,60 @@
         "specifyBody": "json",
         "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": $node[\"WA Webhook\"].json.body?.broadcastCode === \"CXCT01\"\n    ? \"Promo CXCT01 aktif. Tim kami siap bantu proses booking/pickup kamu sekarang.\"\n    : $node[\"WA Webhook\"].json.body?.broadcastCode === \"CXCT02\"\n      ? \"Terima kasih follow-up CXCT02. Boleh kirim jadwal yang kamu inginkan?\"\n      : $node[\"WA Webhook\"].json.body?.broadcastCode === \"CXCT03\"\n        ? \"Kami terima pesan campaign CXCT03. Jika butuh bantuan admin, langsung ketik *admin* ya.\"\n        : \"Pesan campaign sudah kami terima. Tim kami akan follow-up segera.\"\n}"
       }
+    },
+    {
+      "id": "CheckBlockReason",
+      "name": "Check Block Reason",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        460
+      ],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json['reason']}}",
+              "operation": "notContains",
+              "value2": "non_ai"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "SilentDropNonAi",
+      "name": "Silent Drop (Non-AI)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        420
+      ]
+    },
+    {
+      "id": "GoogleSheetsAppend",
+      "name": "Save to Google Sheet",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        2440,
+        20
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "booking_msg",
+              "name": "booking_msg",
+              "type": "string",
+              "value": "={{\"[Booking] ID: \" + ($json.bookingId || \"-\") + \" | WA: \" + ($node[\\\"WA Webhook\\\"].json.waNumber || \"-\") + \" | Vehicle: \" + ($json.vehicle || \"-\") + \" | Plate: \" + ($json.plate || \"-\") + \" | Schedule: \" + ($json.scheduleAt || \"-\") + \" | Pickup: \" + ($json.pickupFlag ? \"Ya\" : \"Tidak\")}}"
+            }
+          ]
+        }
+      }
     }
   ],
   "connections": {
@@ -705,6 +759,31 @@
         [
           {
             "node": "Classify Intent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Block Reason",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Block Reason": {
+      "main": [
+        [
+          {
+            "node": "Silent Drop (Non-AI)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Escalate Fallback",
             "type": "main",
             "index": 0
           }
@@ -823,6 +902,17 @@
         [
           {
             "node": "Reply Booking Created (A)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reply Booking Created (A)": {
+      "main": [
+        [
+          {
+            "node": "Save to Google Sheet",
             "type": "main",
             "index": 0
           }

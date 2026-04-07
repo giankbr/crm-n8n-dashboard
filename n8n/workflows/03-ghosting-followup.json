@@ -1,0 +1,145 @@
+{
+  "name": "ghosting-followup",
+  "description": "Scheduled ghosting follow-up - sends reminders to customers with inactive conversations",
+  "active": true,
+  "nodes": [
+    {
+      "id": "CronSchedule",
+      "name": "Cron: 2x Daily (08:00 & 14:00)",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [240, 280],
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {"hour": 8, "minute": 0},
+            {"hour": 14, "minute": 0}
+          ]
+        }
+      }
+    },
+    {
+      "id": "FetchGhostedThreads",
+      "name": "Fetch Ghosted Threads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 280],
+      "parameters": {
+        "method": "GET",
+        "url": "=http://backend:4000/api/threads/ghosted"
+      }
+    },
+    {
+      "id": "LoopEachThread",
+      "name": "Loop Each Thread",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3,
+      "position": [720, 280],
+      "parameters": {
+        "mode": "splitOut",
+        "fieldToSplitOut": "threads"
+      }
+    },
+    {
+      "id": "FormatFollowupMessage",
+      "name": "Format Follow-up Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [940, 280],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "followup_text",
+              "name": "followup_text",
+              "type": "string",
+              "value": "=`Halo! 👋 Kami ingin menindaklanjuti percakapan sebelumnya. Ada yang bisa kami bantu dengan motor Anda? Bisa kembali hubungi kami kapan saja ya. 🙏`"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "SendFollowupWA",
+      "name": "Send Follow-up WA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1160, 280],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://backend:4000/api/waha/send-text",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": $json.wa_number || '',\n  \"text\": $json.followup_text || 'Halo, ada yang bisa kami bantu?'\n}"
+      }
+    },
+    {
+      "id": "LogFollowupSent",
+      "name": "Log Follow-up Sent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1380, 280],
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    threadId: $json.thread_id || $json.threadId || '',\n    waNumber: $json.wa_number || '',\n    followupSentAt: new Date().toISOString(),\n    lastIncomingAt: $json.last_incoming_at || '',\n    message: $json.body || ''\n  }\n}];"
+      }
+    }
+  ],
+  "connections": {
+    "Cron: 2x Daily (08:00 & 14:00)": {
+      "main": [
+        [
+          {
+            "node": "Fetch Ghosted Threads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Ghosted Threads": {
+      "main": [
+        [
+          {
+            "node": "Loop Each Thread",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Each Thread": {
+      "main": [
+        [
+          {
+            "node": "Format Follow-up Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Follow-up Message": {
+      "main": [
+        [
+          {
+            "node": "Send Follow-up WA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Follow-up WA": {
+      "main": [
+        [
+          {
+            "node": "Log Follow-up Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

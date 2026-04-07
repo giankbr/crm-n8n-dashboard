@@ -42,7 +42,24 @@
         280
       ],
       "parameters": {
-        "jsCode": "const body = $json.body || $json;\nconst threadId = String(body.threadId || body.thread_id || '');\nconst fallbackChatId = threadId.startsWith('thr_') ? threadId.replace('thr_', '') : '';\nconst targetChatId = String(body.adminChatId || body.chatId || fallbackChatId || '');\nconst type = body.type || 'escalation';\nconst reason = body.reason || 'No reason provided';\n\nreturn [{\n  json: {\n    session: 'default',\n    chatId: targetChatId,\n    text: `[ESCALATION] type=${type} thread=${threadId || '-'} reason=${reason}`\n  }\n}];"
+        "jsCode": "const body = $json.body || $json;\nconst threadId = String(body.threadId || body.thread_id || '');\nconst fallbackChatId = threadId.startsWith('thr_') ? threadId.replace('thr_', '') : '';\nconst targetChatId = String(body.adminChatId || body.chatId || fallbackChatId || '');\nconst type = body.type || 'escalation';\nconst reason = body.reason || 'No reason provided';\n\nreturn [{\n  json: {\n    session: 'default',\n    chatId: targetChatId,\n    text: `[ESCALATION] type=${type} thread=${threadId || '-'} reason=${reason}`,\n    threadId: threadId\n  }\n}];"
+      }
+    },
+    {
+      "id": "PauseAiForThread",
+      "name": "Pause AI for Thread",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        780,
+        280
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/chat/pause",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"threadId\": $json.threadId || ''\n}"
       }
     }
   ],
@@ -63,6 +80,17 @@
         [
           {
             "node": "Notify Admin WA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Admin WA": {
+      "main": [
+        [
+          {
+            "node": "Pause AI for Thread",
             "type": "main",
             "index": 0
           }

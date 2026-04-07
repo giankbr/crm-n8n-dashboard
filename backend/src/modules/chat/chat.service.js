@@ -81,6 +81,19 @@ export async function persistIncomingMessage(payload) {
 }
 
 export async function precheckThreadState(waNumber) {
+  // Check non_ai_list first (blocks even new threads)
+  const [nonAiListRows] = await pool.query(
+    `SELECT * FROM non_ai_list
+     WHERE wa_number = ? AND active = TRUE
+     AND (expires_at IS NULL OR expires_at > NOW())
+     LIMIT 1`,
+    [waNumber]
+  );
+
+  if (nonAiListRows.length > 0) {
+    return { allowed: false, reason: "non_ai_list", nonAi: true, aiPausedUntil: null };
+  }
+
   const [rows] = await pool.query(
     `SELECT thread_id, non_ai, ai_paused_until
      FROM threads

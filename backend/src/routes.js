@@ -6,12 +6,19 @@ import {
   setNonAi
 } from "./modules/chat/chat.service.js";
 import { classifyIntent } from "./modules/intent/intent.service.js";
-import { createBooking, getTodayBookings, validateBookingWindow } from "./modules/booking/booking.service.js";
+import {
+  createBooking,
+  getBookingById,
+  getTodayBookings,
+  validateBookingWindow
+} from "./modules/booking/booking.service.js";
 import { createPickupRequest, validatePickup } from "./modules/pickup/pickup.service.js";
 import { resolveBranch } from "./modules/routing/routing.service.js";
 import { buildKnowledgeReply, getServiceHistoryByPlate } from "./modules/knowledge/knowledge.service.js";
 import { escalate } from "./modules/admin/admin.service.js";
 import { sendText, getSessions, startSession, getSessionQR, createSession, healthCheck } from "./modules/waha/waha.service.js";
+import { getGhostingLeads, markGhostingFollowupSent } from "./modules/lead/lead.service.js";
+import { syncBookingToGoogleSheets } from "./modules/sheets/sheets.service.js";
 import { pool } from "./db/pool.js";
 import { config } from "./config.js";
 
@@ -72,7 +79,9 @@ router.post("/booking/validate", async (req, res) => {
 router.post("/booking/create", async (req, res, next) => {
   try {
     const result = await createBooking(req.body);
-    res.json(result);
+    const booking = await getBookingById(result.bookingId);
+    const sheets = await syncBookingToGoogleSheets(booking || result);
+    res.json({ ...result, sheets });
   } catch (error) {
     next(error);
   }
@@ -82,6 +91,31 @@ router.get("/booking/today", async (_req, res, next) => {
   try {
     const rows = await getTodayBookings();
     res.json({ bookings: rows });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/lead/ghosting/due", async (req, res, next) => {
+  try {
+    const rows = await getGhostingLeads({
+      hours: Number(req.query.hours || 24),
+      limit: Number(req.query.limit || 100)
+    });
+    res.json({ leads: rows });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/lead/ghosting/mark-sent", async (req, res, next) => {
+  try {
+    const threadId = String(req.body?.threadId || "").trim();
+    if (!threadId) {
+      return res.status(400).json({ error: "bad_request", message: "threadId is required" });
+    }
+    const result = await markGhostingFollowupSent(threadId);
+    res.json(result);
   } catch (error) {
     next(error);
   }
@@ -126,6 +160,35 @@ router.get("/threads/:threadId/messages", async (req, res, next) => {
       [req.params.threadId]
     );
     res.json({ messages: rows });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/threads/ghosted", async (_req, res, next) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT t.thread_id, t.wa_number,
+        m.body, m.sent_at AS last_incoming_at
+      FROM threads t
+      JOIN messages m ON m.thread_id = t.thread_id
+        AND m.direction = 'incoming'
+        AND m.sent_at = (
+          SELECT MAX(m2.sent_at) FROM messages m2
+          WHERE m2.thread_id = t.thread_id AND m2.direction = 'incoming'
+        )
+      WHERE t.status = 'active'
+        AND t.non_ai = FALSE
+        AND m.sent_at < DATE_SUB(NOW(), INTERVAL 24 HOUR)
+        AND NOT EXISTS (
+          SELECT 1 FROM messages m3
+          WHERE m3.thread_id = t.thread_id
+          AND m3.direction = 'outgoing'
+          AND m3.sent_at > m.sent_at
+        )
+      LIMIT 50`
+    );
+    res.json({ threads: rows });
   } catch (error) {
     next(error);
   }

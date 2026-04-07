@@ -22,6 +22,26 @@
       }
     },
     {
+      "id": "GhostingCron",
+      "name": "Ghosting Cron",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        240,
+        520
+      ],
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "hour": 9,
+              "minute": 0
+            }
+          ]
+        }
+      }
+    },
+    {
       "id": "GetTodayBookings",
       "name": "Get Today Bookings",
       "type": "n8n-nodes-base.httpRequest",
@@ -97,6 +117,100 @@
         "specifyBody": "json",
         "jsonBody": "={\n  \"session\": $json.session,\n  \"chatId\": $json.chatId,\n  \"text\": $json.text\n}"
       }
+    },
+    {
+      "id": "GetGhostingLeads",
+      "name": "Get Ghosting Leads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        520
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "http://backend:4000/api/lead/ghosting/due?hours=24&limit=100"
+      }
+    },
+    {
+      "id": "ExpandGhostingLeads",
+      "name": "Expand Ghosting Leads",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        760,
+        520
+      ],
+      "parameters": {
+        "jsCode": "const rows = $json.leads || [];\nreturn rows.map((x) => ({ json: x }));"
+      }
+    },
+    {
+      "id": "BuildGhostingText",
+      "name": "Build Ghosting Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1020,
+        520
+      ],
+      "parameters": {
+        "jsCode": "const lead = $json;\nreturn [{\n  json: {\n    session: 'default',\n    chatId: String(lead.wa_number || ''),\n    threadId: String(lead.thread_id || ''),\n    text: 'Halo kak, kami follow-up ya. Kalau jadi servis hari ini, kami siap bantu booking atau pickup 🙏'\n  }\n}];"
+      }
+    },
+    {
+      "id": "HasGhostingChatId",
+      "name": "Has Ghosting ChatId?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1260,
+        520
+      ],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.chatId}}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "SendGhostingWA",
+      "name": "Send Ghosting WA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1500,
+        500
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/waha/send-text",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"session\": $json.session,\n  \"chatId\": $json.chatId,\n  \"text\": $json.text\n}"
+      }
+    },
+    {
+      "id": "MarkGhostingSent",
+      "name": "Mark Ghosting Sent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1740,
+        500
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/lead/ghosting/mark-sent",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"threadId\": $json.threadId\n}"
+      }
     }
   ],
   "connections": {
@@ -154,6 +268,73 @@
           }
         ],
         []
+      ]
+    },
+    "Ghosting Cron": {
+      "main": [
+        [
+          {
+            "node": "Get Ghosting Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Ghosting Leads": {
+      "main": [
+        [
+          {
+            "node": "Expand Ghosting Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expand Ghosting Leads": {
+      "main": [
+        [
+          {
+            "node": "Build Ghosting Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Ghosting Text": {
+      "main": [
+        [
+          {
+            "node": "Has Ghosting ChatId?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Ghosting ChatId?": {
+      "main": [
+        [
+          {
+            "node": "Send Ghosting WA",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Send Ghosting WA": {
+      "main": [
+        [
+          {
+            "node": "Mark Ghosting Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   }

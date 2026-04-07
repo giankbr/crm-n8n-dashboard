@@ -41,6 +41,17 @@ export async function createBooking(payload) {
   return { bookingId: result.insertId };
 }
 
+export async function getBookingById(bookingId) {
+  const [rows] = await pool.query(
+    `SELECT id, customer_id, thread_id, vehicle, plate, service_type, schedule_at, branch_id, pickup_flag, status, created_at
+     FROM bookings
+     WHERE id = ?
+     LIMIT 1`,
+    [bookingId]
+  );
+  return rows[0] || null;
+}
+
 export async function getTodayBookings() {
   const [rows] = await pool.query(
     `SELECT * FROM bookings
