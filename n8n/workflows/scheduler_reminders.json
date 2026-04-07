@@ -115,7 +115,7 @@
         "url": "http://backend:4000/api/waha/send-text",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"session\": $json.session,\n  \"chatId\": $json.chatId,\n  \"text\": $json.text\n}"
+        "jsonBody": "={{ ({\n\"session\": $json.session,\n  \"chatId\": $json.chatId,\n  \"text\": $json.text\n}) }}"
       }
     },
     {
@@ -155,7 +155,7 @@
         520
       ],
       "parameters": {
-        "jsCode": "const lead = $json;\nreturn [{\n  json: {\n    session: 'default',\n    chatId: String(lead.wa_number || ''),\n    threadId: String(lead.thread_id || ''),\n    text: 'Halo kak, kami follow-up ya. Kalau jadi servis hari ini, kami siap bantu booking atau pickup 🙏'\n  }\n}];"
+        "jsCode": "const lead = $json;\nreturn [{\n  json: {\n    session: 'default',\n    chatId: String(lead.wa_number || ''),\n    threadId: String(lead.thread_id || ''),\n    text: 'Halo kak, kami follow-up ya. Kalau jadi servis hari ini, kami siap bantu booking atau pickup \ud83d\ude4f'\n  }\n}];"
       }
     },
     {
@@ -192,7 +192,7 @@
         "url": "http://backend:4000/api/waha/send-text",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"session\": $json.session,\n  \"chatId\": $json.chatId,\n  \"text\": $json.text\n}"
+        "jsonBody": "={{ ({\n\"session\": $json.session,\n  \"chatId\": $json.chatId,\n  \"text\": $json.text\n}) }}"
       }
     },
     {
@@ -209,7 +209,7 @@
         "url": "http://backend:4000/api/lead/ghosting/mark-sent",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"threadId\": $json.threadId\n}"
+        "jsonBody": "={{ ({\n\"threadId\": $json.threadId\n}) }}"
       }
     }
   ],

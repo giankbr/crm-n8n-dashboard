@@ -29,7 +29,7 @@
         "url": "http://backend:4000/api/waha/send-text",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"session\": $json.session,\n  \"chatId\": $json.chatId,\n  \"text\": $json.text\n}"
+        "jsonBody": "={{ ({\n\"session\": $json.session,\n  \"chatId\": $json.chatId,\n  \"text\": $json.text\n}) }}"
       }
     },
     {
@@ -59,7 +59,7 @@
         "url": "http://backend:4000/api/chat/pause",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"threadId\": $json.threadId || ''\n}"
+        "jsonBody": "={{ ({\n\"threadId\": $json.threadId || ''\n}) }}"
       }
     }
   ],

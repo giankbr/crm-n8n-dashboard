@@ -8,12 +8,21 @@
       "name": "Cron: 2x Daily (08:00 & 14:00)",
       "type": "n8n-nodes-base.cron",
       "typeVersion": 1,
-      "position": [240, 280],
+      "position": [
+        240,
+        280
+      ],
       "parameters": {
         "triggerTimes": {
           "item": [
-            {"hour": 8, "minute": 0},
-            {"hour": 14, "minute": 0}
+            {
+              "hour": 8,
+              "minute": 0
+            },
+            {
+              "hour": 14,
+              "minute": 0
+            }
           ]
         }
       }
@@ -23,7 +32,10 @@
       "name": "Fetch Ghosted Threads",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [500, 280],
+      "position": [
+        500,
+        280
+      ],
       "parameters": {
         "method": "GET",
         "url": "=http://backend:4000/api/threads/ghosted"
@@ -34,7 +46,10 @@
       "name": "Loop Each Thread",
       "type": "n8n-nodes-base.itemLists",
       "typeVersion": 3,
-      "position": [720, 280],
+      "position": [
+        720,
+        280
+      ],
       "parameters": {
         "mode": "splitOut",
         "fieldToSplitOut": "threads"
@@ -45,7 +60,10 @@
       "name": "Format Follow-up Message",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3,
-      "position": [940, 280],
+      "position": [
+        940,
+        280
+      ],
       "parameters": {
         "mode": "manual",
         "assignments": {
@@ -54,7 +72,7 @@
               "id": "followup_text",
               "name": "followup_text",
               "type": "string",
-              "value": "=`Halo! 👋 Kami ingin menindaklanjuti percakapan sebelumnya. Ada yang bisa kami bantu dengan motor Anda? Bisa kembali hubungi kami kapan saja ya. 🙏`"
+              "value": "=`Halo! \ud83d\udc4b Kami ingin menindaklanjuti percakapan sebelumnya. Ada yang bisa kami bantu dengan motor Anda? Bisa kembali hubungi kami kapan saja ya. \ud83d\ude4f`"
             }
           ]
         }
@@ -65,13 +83,16 @@
       "name": "Send Follow-up WA",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1160, 280],
+      "position": [
+        1160,
+        280
+      ],
       "parameters": {
         "method": "POST",
         "url": "=http://backend:4000/api/waha/send-text",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": $json.wa_number || '',\n  \"text\": $json.followup_text || 'Halo, ada yang bisa kami bantu?'\n}"
+        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"chatId\": $json.wa_number || '',\n  \"text\": $json.followup_text || 'Halo, ada yang bisa kami bantu?'\n}) }}"
       }
     },
     {
@@ -79,7 +100,10 @@
       "name": "Log Follow-up Sent",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1380, 280],
+      "position": [
+        1380,
+        280
+      ],
       "parameters": {
         "jsCode": "return [{\n  json: {\n    threadId: $json.thread_id || $json.threadId || '',\n    waNumber: $json.wa_number || '',\n    followupSentAt: new Date().toISOString(),\n    lastIncomingAt: $json.last_incoming_at || '',\n    message: $json.body || ''\n  }\n}];"
       }
