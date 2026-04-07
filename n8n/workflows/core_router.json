@@ -1,0 +1,397 @@
+{
+  "name": "wa-core-router",
+  "nodes": [
+    {
+      "id": "WebhookIn",
+      "name": "WA Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "path": "waha/incoming",
+        "httpMethod": "POST"
+      }
+    },
+    {
+      "id": "PersistMessage",
+      "name": "Persist Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/webhook/waha",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"waNumber\": $json.body?.waNumber || $json.waNumber || $json.from || '',\n  \"body\": $json.body?.body || $json.body || $json.text || '',\n  \"messageId\": $json.body?.messageId || $json.messageId || $json.id || '',\n  \"timestamp\": $json.body?.timestamp || $json.timestamp || $now.toISO()\n}"
+      }
+    },
+    {
+      "id": "Precheck",
+      "name": "Precheck Thread",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/chat/precheck",
+        "sendBody": true,
+        "bodyParametersUi": {
+          "parameter": [
+            {
+              "name": "waNumber",
+              "value": "={{$node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\"}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "IfAllowed",
+      "name": "Allowed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        900,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json[\"allowed\"]}}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "Classify",
+      "name": "Classify Intent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        220
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/chat/classify",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"threadId\": $node[\"Persist Message\"].json.threadId || '',\n  \"text\": $node[\"WA Webhook\"].json.body?.body || $node[\"WA Webhook\"].json.body || $node[\"WA Webhook\"].json.text || '',\n  \"metadata\": {\n    \"waNumber\": $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || ''\n  }\n}"
+      }
+    },
+    {
+      "id": "RouteBySubflow",
+      "name": "Route Subflow",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        1340,
+        220
+      ],
+      "parameters": {
+        "propertyName": "={{$json[\"subflow\"]}}",
+        "rules": [
+          {
+            "operation": "equal",
+            "value": "A"
+          },
+          {
+            "operation": "equal",
+            "value": "B"
+          },
+          {
+            "operation": "equal",
+            "value": "C"
+          },
+          {
+            "operation": "equal",
+            "value": "D"
+          },
+          {
+            "operation": "equal",
+            "value": "E"
+          },
+          {
+            "operation": "equal",
+            "value": "F"
+          },
+          {
+            "operation": "equal",
+            "value": "G"
+          },
+          {
+            "operation": "equal",
+            "value": "H"
+          }
+        ]
+      }
+    },
+    {
+      "id": "EscalateFallback",
+      "name": "Escalate Fallback",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1560,
+        460
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/handover/escalate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"threadId\": $node[\"Persist Message\"].json.threadId || '',\n  \"type\": \"fallback\",\n  \"targetRole\": \"cs\",\n  \"reason\": `Auto fallback from intent classifier: ${$json.intent || 'unknown'}`\n}"
+      }
+    },
+    {
+      "id": "ValidateBookingA",
+      "name": "Validate Booking (A)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1560,
+        60
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/booking/validate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"scheduleAt\": $node[\"WA Webhook\"].json.body?.scheduleAt || $node[\"WA Webhook\"].json.scheduleAt || $now.plus({ days: 1 }).set({ hour: 10, minute: 0, second: 0, millisecond: 0 }).toISO(),\n  \"branchCloseHour\": \"17:00\",\n  \"weekendCloseHour\": \"16:00\"\n}"
+      }
+    },
+    {
+      "id": "BookingWindowOK",
+      "name": "Booking Window OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        60
+      ],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json[\"valid\"]}}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "CreateBookingA",
+      "name": "Create Booking (A)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/booking/create",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"threadId\": $node[\"Persist Message\"].json.threadId,\n  \"vehicle\": $node[\"WA Webhook\"].json.body?.vehicle || \"Honda Vario 125\",\n  \"plate\": $node[\"WA Webhook\"].json.body?.plate || \"B1234XYZ\",\n  \"serviceType\": $node[\"WA Webhook\"].json.body?.serviceType || \"servis berkala\",\n  \"scheduleAt\": $node[\"WA Webhook\"].json.body?.scheduleAt || $node[\"WA Webhook\"].json.scheduleAt || $now.plus({ days: 1 }).set({ hour: 10, minute: 0, second: 0, millisecond: 0 }).toISO(),\n  \"pickupFlag\": false\n}"
+      }
+    },
+    {
+      "id": "ReplyFallbackH",
+      "name": "Reply Fallback (H)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1780,
+        460
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/waha/send-text",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Halo, pesan kamu sudah kami teruskan ke admin kami ya. Mohon tunggu sebentar 🙏\"\n}"
+      }
+    },
+    {
+      "id": "ReplyBookingCreatedA",
+      "name": "Reply Booking Created (A)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2220,
+        20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/waha/send-text",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": `Booking berhasil dibuat. ID booking kamu: ${$json.bookingId}. Tim kami akan konfirmasi segera.`\n}"
+      }
+    },
+    {
+      "id": "ReplyBookingInvalidA",
+      "name": "Reply Booking Invalid (A)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        120
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:4000/api/waha/send-text",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Jadwal booking yang dipilih terlalu mepet jam tutup. Coba pilih jadwal lain ya 🙏\"\n}"
+      }
+    }
+  ],
+  "connections": {
+    "WA Webhook": {
+      "main": [
+        [
+          {
+            "node": "Persist Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Persist Message": {
+      "main": [
+        [
+          {
+            "node": "Precheck Thread",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Precheck Thread": {
+      "main": [
+        [
+          {
+            "node": "Allowed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Allowed?": {
+      "main": [
+        [
+          {
+            "node": "Classify Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Intent": {
+      "main": [
+        [
+          {
+            "node": "Route Subflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Subflow": {
+      "main": [
+        [
+          {
+            "node": "Validate Booking (A)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [
+          {
+            "node": "Escalate Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Booking (A)": {
+      "main": [
+        [
+          {
+            "node": "Booking Window OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Booking Window OK?": {
+      "main": [
+        [
+          {
+            "node": "Create Booking (A)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reply Booking Invalid (A)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Booking (A)": {
+      "main": [
+        [
+          {
+            "node": "Reply Booking Created (A)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escalate Fallback": {
+      "main": [
+        [
+          {
+            "node": "Reply Fallback (H)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

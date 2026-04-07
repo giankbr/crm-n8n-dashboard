@@ -1,0 +1,52 @@
+{
+  "name": "scheduler-reminders",
+  "nodes": [
+    {
+      "id": "DailyCron",
+      "name": "Daily Cron",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        240,
+        280
+      ],
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "hour": 6,
+              "minute": 30
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "GetTodayBookings",
+      "name": "Get Today Bookings",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        280
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "http://backend:4000/api/booking/today"
+      }
+    }
+  ],
+  "connections": {
+    "Daily Cron": {
+      "main": [
+        [
+          {
+            "node": "Get Today Bookings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

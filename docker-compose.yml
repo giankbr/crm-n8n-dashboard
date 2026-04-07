@@ -1,0 +1,75 @@
+services:
+  waha:
+    image: devlikeapro/waha
+    platform: linux/amd64
+    container_name: waha
+    restart: unless-stopped
+    environment:
+      - WAHA_LOG_LEVEL=info
+      - WAHA_WORKER_CONCURRENCY=4
+      - WHATSAPP_SWAGGER_USERNAME=${WHATSAPP_SWAGGER_USERNAME:-admin}
+      - WHATSAPP_SWAGGER_PASSWORD=${WHATSAPP_SWAGGER_PASSWORD:-admin123}
+      - WAHA_API_KEY=${WAHA_API_KEY:-}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./waha_data:/app/.waha
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    container_name: n8n
+    restart: unless-stopped
+    environment:
+      - N8N_HOST=${N8N_HOST}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://${N8N_HOST}:5678/
+      - GENERIC_TIMEZONE=${TIMEZONE}
+    ports:
+      - "5678:5678"
+    volumes:
+      - ./n8n_data:/home/node/.n8n
+    depends_on:
+      - mysql
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql_db
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root123}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-chatbot_crm}
+      - MYSQL_USER=${MYSQL_USER:-chatbot_user}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-chatbot_pass}
+    ports:
+      - "3308:3306"
+    volumes:
+      - ./mysql_data:/var/lib/mysql
+      - ./init:/docker-entrypoint-initdb.d
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: crm_backend
+    restart: unless-stopped
+    environment:
+      - PORT=4000
+      - MYSQL_HOST=host.docker.internal
+      - MYSQL_PORT=3308
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-chatbot_crm}
+      - MYSQL_USER=${MYSQL_USER:-chatbot_user}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-chatbot_pass}
+      - AI_PAUSE_MINUTES=15
+      - WAHA_BASE_URL=http://host.docker.internal:3000
+      - WAHA_DASHBOARD_URL=${WAHA_DASHBOARD_URL:-http://localhost:3000}
+      - WAHA_DASHBOARD_USERNAME=${WAHA_DASHBOARD_USERNAME:-admin}
+      - WAHA_DASHBOARD_PASSWORD=${WAHA_DASHBOARD_PASSWORD:-admin123}
+      - WHATSAPP_SWAGGER_USERNAME=${WHATSAPP_SWAGGER_USERNAME:-admin}
+      - WHATSAPP_SWAGGER_PASSWORD=${WHATSAPP_SWAGGER_PASSWORD:-admin123}
+      - WAHA_API_KEY=${WAHA_API_KEY:-}
+      - NODE_ENV=production
+    ports:
+      - "4000:4000"
+    depends_on:
+      - mysql

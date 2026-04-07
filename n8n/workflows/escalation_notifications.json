@@ -1,0 +1,47 @@
+{
+  "name": "escalation-notifications",
+  "nodes": [
+    {
+      "id": "EscalationWebhook",
+      "name": "Escalation Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        280
+      ],
+      "parameters": {
+        "path": "escalation/notify",
+        "httpMethod": "POST"
+      }
+    },
+    {
+      "id": "NotifyAdminWA",
+      "name": "Notify Admin WA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        280
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://waha:3000/api/sendText",
+        "sendBody": true
+      }
+    }
+  ],
+  "connections": {
+    "Escalation Webhook": {
+      "main": [
+        [
+          {
+            "node": "Notify Admin WA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
