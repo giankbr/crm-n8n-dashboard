@@ -3,25 +3,33 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-async function api(path, options = {}) {
-  const response = await fetch(`/api${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...options
-  });
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(text || `Request failed: ${response.status}`);
-  }
-  return response.json();
-}
+import { toast } from "sonner";
+import { api } from "@/lib/auth";
 
 export function InboxSection({ threads, onDataChanged }) {
   const [selectedThread, setSelectedThread] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [threadPage, setThreadPage] = useState(1);
+  const [query, setQuery] = useState("");
+  const [pageSize, setPageSize] = useState(8);
   const selectedThreadId = useMemo(() => selectedThread?.thread_id || "", [selectedThread]);
+  const filteredThreads = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return threads;
+    return threads.filter(
+      (thread) =>
+        String(thread.wa_number || "").toLowerCase().includes(q) ||
+        String(thread.last_message || "").toLowerCase().includes(q)
+    );
+  }, [threads, query]);
+  const totalThreadPages = Math.max(1, Math.ceil(filteredThreads.length / pageSize));
+  const pagedThreads = useMemo(() => {
+    const start = (threadPage - 1) * pageSize;
+    return filteredThreads.slice(start, start + pageSize);
+  }, [filteredThreads, threadPage, pageSize]);
 
   async function loadMessages(threadId) {
     const data = await api(`/threads/${threadId}/messages`);
@@ -29,13 +37,23 @@ export function InboxSection({ threads, onDataChanged }) {
   }
 
   async function pauseAi(threadId) {
-    await api("/chat/pause", { method: "POST", body: JSON.stringify({ threadId }) });
-    await onDataChanged();
+    try {
+      await api("/chat/pause", { method: "POST", body: JSON.stringify({ threadId }) });
+      toast.success("AI paused untuk thread ini");
+      await onDataChanged();
+    } catch (error) {
+      toast.error(`Gagal pause AI: ${String(error.message || error)}`);
+    }
   }
 
   async function toggleNonAi(threadId, nonAi) {
-    await api("/chat/non-ai", { method: "POST", body: JSON.stringify({ threadId, nonAi }) });
-    await onDataChanged();
+    try {
+      await api("/chat/non-ai", { method: "POST", body: JSON.stringify({ threadId, nonAi }) });
+      toast.success(nonAi ? "Thread di-set Non-AI" : "Non-AI dihapus");
+      await onDataChanged();
+    } catch (error) {
+      toast.error(`Gagal update Non-AI: ${String(error.message || error)}`);
+    }
   }
 
   return (
@@ -43,7 +61,25 @@ export function InboxSection({ threads, onDataChanged }) {
       <Card>
         <CardHeader><CardTitle>Threads</CardTitle></CardHeader>
         <CardContent className="space-y-2">
-          {threads.map((thread) => (
+          <div className="flex items-center gap-2">
+            <Input
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setThreadPage(1);
+              }}
+              placeholder="Cari nomor atau pesan terakhir..."
+              className="h-8"
+            />
+            <RowsPerPageSelect
+              value={pageSize}
+              onChange={(next) => {
+                setPageSize(next);
+                setThreadPage(1);
+              }}
+            />
+          </div>
+          {pagedThreads.map((thread) => (
             <button
               key={thread.thread_id}
               className="w-full rounded-md border p-3 text-left hover:bg-muted"
@@ -56,6 +92,7 @@ export function InboxSection({ threads, onDataChanged }) {
               <p className="text-xs text-muted-foreground">{thread.last_message || "-"}</p>
             </button>
           ))}
+          <PaginationControls page={threadPage} totalPages={totalThreadPages} onPageChange={setThreadPage} />
         </CardContent>
       </Card>
 
@@ -88,16 +125,67 @@ export function InboxSection({ threads, onDataChanged }) {
 }
 
 export function BookingSection({ bookings }) {
+  const [page, setPage] = useState(1);
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [pageSize, setPageSize] = useState(10);
+  const filteredBookings = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return bookings.filter((booking) => {
+      const matchesQuery =
+        !q ||
+        String(booking.vehicle || "").toLowerCase().includes(q) ||
+        String(booking.plate || "").toLowerCase().includes(q);
+      const matchesStatus = statusFilter === "all" || String(booking.status || "").toLowerCase() === statusFilter;
+      return matchesQuery && matchesStatus;
+    });
+  }, [bookings, query, statusFilter]);
+  const totalPages = Math.max(1, Math.ceil(filteredBookings.length / pageSize));
+  const pagedBookings = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredBookings.slice(start, start + pageSize);
+  }, [filteredBookings, page, pageSize]);
+  const bookingStatuses = useMemo(
+    () => ["all", ...new Set(bookings.map((booking) => String(booking.status || "").toLowerCase()).filter(Boolean))],
+    [bookings]
+  );
+
   return (
     <Card>
       <CardHeader><CardTitle>Today Booking Queue</CardTitle></CardHeader>
       <CardContent>
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <Input
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setPage(1);
+            }}
+            placeholder="Cari vehicle atau plate..."
+            className="h-8 max-w-xs"
+          />
+          <SimpleFilterSelect
+            value={statusFilter}
+            onChange={(next) => {
+              setStatusFilter(next);
+              setPage(1);
+            }}
+            options={bookingStatuses}
+          />
+          <RowsPerPageSelect
+            value={pageSize}
+            onChange={(next) => {
+              setPageSize(next);
+              setPage(1);
+            }}
+          />
+        </div>
         <Table>
           <TableHeader>
             <TableRow><TableHead>Vehicle</TableHead><TableHead>Plate</TableHead><TableHead>Status</TableHead></TableRow>
           </TableHeader>
           <TableBody>
-            {bookings.map((b) => (
+            {pagedBookings.map((b) => (
               <TableRow key={b.id}>
                 <TableCell>{b.vehicle}</TableCell>
                 <TableCell>{b.plate}</TableCell>
@@ -106,22 +194,76 @@ export function BookingSection({ bookings }) {
             ))}
           </TableBody>
         </Table>
+        <PaginationControls page={page} totalPages={totalPages} onPageChange={setPage} />
       </CardContent>
     </Card>
   );
 }
 
 export function EscalationsSection({ escalations }) {
+  const [page, setPage] = useState(1);
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [pageSize, setPageSize] = useState(10);
+  const filteredEscalations = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return escalations.filter((escalation) => {
+      const matchesQuery =
+        !q ||
+        String(escalation.type || "").toLowerCase().includes(q) ||
+        String(escalation.thread_id || "").toLowerCase().includes(q) ||
+        String(escalation.target_role || "").toLowerCase().includes(q);
+      const matchesStatus =
+        statusFilter === "all" || String(escalation.status || "").toLowerCase() === statusFilter;
+      return matchesQuery && matchesStatus;
+    });
+  }, [escalations, query, statusFilter]);
+  const totalPages = Math.max(1, Math.ceil(filteredEscalations.length / pageSize));
+  const pagedEscalations = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredEscalations.slice(start, start + pageSize);
+  }, [filteredEscalations, page, pageSize]);
+  const escalationStatuses = useMemo(
+    () => ["all", ...new Set(escalations.map((escalation) => String(escalation.status || "").toLowerCase()).filter(Boolean))],
+    [escalations]
+  );
+
   return (
     <Card>
       <CardHeader><CardTitle>Escalation Monitor</CardTitle></CardHeader>
       <CardContent>
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <Input
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setPage(1);
+            }}
+            placeholder="Cari type, target, atau thread..."
+            className="h-8 max-w-xs"
+          />
+          <SimpleFilterSelect
+            value={statusFilter}
+            onChange={(next) => {
+              setStatusFilter(next);
+              setPage(1);
+            }}
+            options={escalationStatuses}
+          />
+          <RowsPerPageSelect
+            value={pageSize}
+            onChange={(next) => {
+              setPageSize(next);
+              setPage(1);
+            }}
+          />
+        </div>
         <Table>
           <TableHeader>
             <TableRow><TableHead>Type</TableHead><TableHead>Target</TableHead><TableHead>Status</TableHead><TableHead>Thread</TableHead></TableRow>
           </TableHeader>
           <TableBody>
-            {escalations.map((e) => (
+            {pagedEscalations.map((e) => (
               <TableRow key={e.id}>
                 <TableCell>{e.type}</TableCell>
                 <TableCell>{e.target_role}</TableCell>
@@ -131,6 +273,7 @@ export function EscalationsSection({ escalations }) {
             ))}
           </TableBody>
         </Table>
+        <PaginationControls page={page} totalPages={totalPages} onPageChange={setPage} />
       </CardContent>
     </Card>
   );
@@ -141,6 +284,23 @@ export function WahaSection({ sessions, onRefresh }) {
   const [sessionQr, setSessionQr] = useState("");
   const [qrSessionName, setQrSessionName] = useState("");
   const [wahaError, setWahaError] = useState("");
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(8);
+  const filteredSessions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return sessions;
+    return sessions.filter(
+      (session) =>
+        String(session.name || "").toLowerCase().includes(q) ||
+        String(session.status || "").toLowerCase().includes(q)
+    );
+  }, [sessions, query]);
+  const totalPages = Math.max(1, Math.ceil(filteredSessions.length / pageSize));
+  const pagedSessions = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredSessions.slice(start, start + pageSize);
+  }, [filteredSessions, page, pageSize]);
 
   async function createSession() {
     if (!newSessionName.trim()) return;
@@ -152,11 +312,14 @@ export function WahaSection({ sessions, onRefresh }) {
       });
       if (result?.alreadyExists) {
         setWahaError("Session 'default' sudah ada. Lanjut klik Start atau QR.");
+        toast.info("Session sudah ada, lanjut Start atau QR.");
       }
       setNewSessionName("");
+      toast.success("Session berhasil dibuat");
       await onRefresh();
     } catch (error) {
       setWahaError(error.message);
+      toast.error(`Gagal create session: ${String(error.message || error)}`);
     }
   }
 
@@ -164,9 +327,11 @@ export function WahaSection({ sessions, onRefresh }) {
     try {
       setWahaError("");
       await api(`/waha/sessions/${name}/start`, { method: "POST" });
+      toast.success(`Session ${name} berhasil di-start`);
       await onRefresh();
     } catch (error) {
       setWahaError(error.message);
+      toast.error(`Gagal start session: ${String(error.message || error)}`);
     }
   }
 
@@ -180,6 +345,7 @@ export function WahaSection({ sessions, onRefresh }) {
       }
       setQrSessionName(name);
       setSessionQr(data.qr || data.base64 || "");
+      toast.success(`QR session ${name} berhasil di-load`);
     } catch (error) {
       const message = String(error?.message || "");
       if (message.includes("Cannot GET /api/sessions/") && message.includes("/auth/qr")) {
@@ -187,6 +353,7 @@ export function WahaSection({ sessions, onRefresh }) {
       } else {
         setWahaError(message);
       }
+      toast.error(`Gagal load QR: ${message}`);
     }
   }
 
@@ -210,12 +377,30 @@ export function WahaSection({ sessions, onRefresh }) {
             <Button onClick={createSession}>Create</Button>
             <Button variant="outline" onClick={onRefresh}>Reload</Button>
           </div>
+          <div className="flex items-center gap-2">
+            <Input
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setPage(1);
+              }}
+              placeholder="Cari nama session atau status..."
+              className="h-8 max-w-xs"
+            />
+            <RowsPerPageSelect
+              value={pageSize}
+              onChange={(next) => {
+                setPageSize(next);
+                setPage(1);
+              }}
+            />
+          </div>
           <Table>
             <TableHeader>
               <TableRow><TableHead>Name</TableHead><TableHead>Status</TableHead><TableHead>Actions</TableHead></TableRow>
             </TableHeader>
             <TableBody>
-              {sessions.map((s, idx) => (
+              {pagedSessions.map((s, idx) => (
                 <TableRow key={s.name || idx}>
                   <TableCell>{s.name || "-"}</TableCell>
                   <TableCell>{s.status || "unknown"}</TableCell>
@@ -227,6 +412,7 @@ export function WahaSection({ sessions, onRefresh }) {
               ))}
             </TableBody>
           </Table>
+          <PaginationControls page={page} totalPages={totalPages} onPageChange={setPage} />
         </CardContent>
       </Card>
 
@@ -243,6 +429,56 @@ export function WahaSection({ sessions, onRefresh }) {
         </Card>
       ) : null}
     </div>
+  );
+}
+
+function PaginationControls({ page, totalPages, onPageChange }) {
+  if (totalPages <= 1) return null;
+  return (
+    <div className="sticky bottom-0 mt-3 flex items-center justify-end gap-2 rounded-md border bg-background/95 p-2 backdrop-blur">
+      <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
+        Prev
+      </Button>
+      <span className="text-xs text-muted-foreground">
+        Page {page} / {totalPages}
+      </span>
+      <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>
+        Next
+      </Button>
+    </div>
+  );
+}
+
+function RowsPerPageSelect({ value, onChange }) {
+  return (
+    <Select value={String(value)} onValueChange={(next) => onChange(Number(next))}>
+      <SelectTrigger className="h-8 w-24">
+        <SelectValue placeholder="Rows" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="5">5 rows</SelectItem>
+        <SelectItem value="10">10 rows</SelectItem>
+        <SelectItem value="25">25 rows</SelectItem>
+        <SelectItem value="50">50 rows</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+}
+
+function SimpleFilterSelect({ value, onChange, options }) {
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className="h-8 w-28">
+        <SelectValue placeholder="Filter" />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((option) => (
+          <SelectItem key={option} value={option}>
+            {option === "all" ? "All status" : option}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 

@@ -13,12 +13,14 @@ import { SectionCards } from "./components/section-cards";
 import { SiteHeader } from "./components/site-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { useDashboardData } from "./use-dashboard-data";
+import { clearAuth, getUsername } from "@/lib/auth";
 
 export default function Page() {
   const { threads, bookings, escalations, sessions, error, stats, loadAll } = useDashboardData();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const username = getUsername();
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme");
@@ -46,6 +48,11 @@ export default function Page() {
   };
 
   const isDashboardHome = location.pathname === "/";
+
+  function handleLogout() {
+    clearAuth();
+    navigate("/login", { replace: true });
+  }
 
   function renderContent() {
     switch (location.pathname) {
@@ -87,6 +94,8 @@ export default function Page() {
           title={titles[location.pathname] || "Control Center"}
           isDarkMode={isDarkMode}
           onToggleDarkMode={() => setIsDarkMode((prev) => !prev)}
+          username={username}
+          onLogout={handleLogout}
         />
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">

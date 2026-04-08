@@ -3,7 +3,13 @@ import { IconChevronRight, IconMoon, IconSun } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
-export function SiteHeader({ title = "Control Center", isDarkMode = false, onToggleDarkMode = () => {} }) {
+export function SiteHeader({
+  title = "Control Center",
+  isDarkMode = false,
+  onToggleDarkMode = () => {},
+  username = "",
+  onLogout = () => {}
+}) {
   return (
     <header
       className="bg-background/90 sticky top-0 z-10 flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
@@ -15,6 +21,7 @@ export function SiteHeader({ title = "Control Center", isDarkMode = false, onTog
           <span className="font-medium text-foreground">{title}</span>
         </nav>
         <div className="ml-auto flex items-center gap-2">
+          {username ? <span className="hidden text-xs text-muted-foreground sm:inline">{username}</span> : null}
           <Button
             size="sm"
             variant="outline"
@@ -23,6 +30,9 @@ export function SiteHeader({ title = "Control Center", isDarkMode = false, onTog
             aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}>
             {isDarkMode ? <IconSun /> : <IconMoon />}
             <span className="hidden sm:inline">{isDarkMode ? "Light" : "Dark"}</span>
+          </Button>
+          <Button size="sm" variant="outline" className="h-7" onClick={onLogout}>
+            Logout
           </Button>
         </div>
       </div>

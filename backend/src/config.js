@@ -19,6 +19,11 @@ export const config = {
   googleSheets: {
     webhookUrl: process.env.GOOGLE_SHEETS_WEBHOOK_URL || ""
   },
+  auth: {
+    tokenSecret: process.env.DASHBOARD_AUTH_SECRET || "change_me_dashboard_secret",
+    tokenTtlHours: Number(process.env.DASHBOARD_AUTH_TTL_HOURS || 12),
+    users: process.env.DASHBOARD_USERS || "admin:admin123:admin"
+  },
   waha: {
     baseUrl: process.env.WAHA_BASE_URL || "http://host.docker.internal:3000",
     dashboardUrl: process.env.WAHA_DASHBOARD_URL || "http://localhost:3000",

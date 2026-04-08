@@ -1,4 +1,5 @@
 import { pool } from "./pool.js";
+import { ensureAdminUsersSeeded } from "../modules/auth/auth.service.js";
 
 const branches = [
   { name: "Cabang Pusat - Adiwerna", latitude: -7.1234, longitude: 109.4567, phone: "0274-123456" },
@@ -17,10 +18,10 @@ const customers = [
 async function seedBranches() {
   for (const b of branches) {
     await pool.query(
-      `INSERT INTO branches (name, latitude, longitude, phone, active)
-       VALUES (?, ?, ?, ?, TRUE)
-       ON DUPLICATE KEY UPDATE latitude = VALUES(latitude), longitude = VALUES(longitude), phone = VALUES(phone)`,
-      [b.name, b.latitude, b.longitude, b.phone]
+      `INSERT INTO branches (name, latitude, longitude, active)
+       VALUES (?, ?, ?, TRUE)
+       ON DUPLICATE KEY UPDATE latitude = VALUES(latitude), longitude = VALUES(longitude)`,
+      [b.name, b.latitude, b.longitude]
     );
   }
   console.log(`✓ Seeded ${branches.length} branches`);
@@ -67,18 +68,18 @@ async function seedSampleData() {
   const [branches_result] = await pool.query("SELECT id FROM branches LIMIT 1");
   if (customers_result.length > 0 && branches_result.length > 0 && threads.length > 0) {
     await pool.query(
-      `INSERT INTO bookings (customer_id, thread_id, vehicle, plate, service_type, schedule_at, branch_id, status)
-       VALUES (?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 1 DAY), ?, 'pending')`,
-      [customers_result[0].id, threads[0].thread_id, "Honda CB150", "AD 1234 AB", "routine_check", branches_result[0].id]
+      `INSERT INTO bookings (customer_id, thread_id, vehicle, plate, schedule_at, branch_id, status)
+       VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 1 DAY), ?, 'pending')`,
+      [customers_result[0].id, threads[0].thread_id, "Honda CB150", "AD 1234 AB", branches_result[0].id]
     );
     console.log("✓ Seeded sample bookings");
   }
 
   // Create sample service history
   await pool.query(
-    `INSERT INTO service_history (plate_no, last_service_at, service_type, replaced_parts, cost)
-     VALUES (?, DATE_SUB(NOW(), INTERVAL 30 DAY), 'routine_check', 'Oli', 150000)
-     ON DUPLICATE KEY UPDATE last_service_at = VALUES(last_service_at)`,
+    `INSERT INTO service_history (plate_no, last_service_at, replaced_parts, notes)
+     VALUES (?, DATE_SUB(NOW(), INTERVAL 30 DAY), JSON_ARRAY('Oli'), 'Seeded sample history')
+     ON DUPLICATE KEY UPDATE last_service_at = VALUES(last_service_at), replaced_parts = VALUES(replaced_parts), notes = VALUES(notes)`,
     ["AD 1234 AB"]
   );
   console.log("✓ Seeded sample service history");
@@ -87,6 +88,8 @@ async function seedSampleData() {
 async function main() {
   try {
     console.log("Starting seed...");
+    await ensureAdminUsersSeeded();
+    console.log("✓ Seeded admin users");
     await seedBranches();
     await seedCustomers();
     await seedSampleData();

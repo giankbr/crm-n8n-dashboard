@@ -1,16 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-
-async function api(path, options = {}) {
-  const response = await fetch(`/api${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...options
-  });
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(text || `Request failed: ${response.status}`);
-  }
-  return response.json();
-}
+import { api } from "@/lib/auth";
 
 export function useDashboardData() {
   const [threads, setThreads] = useState([]);

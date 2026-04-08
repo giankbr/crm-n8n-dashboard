@@ -21,10 +21,31 @@ import { getGhostingLeads, markGhostingFollowupSent } from "./modules/lead/lead.
 import { syncBookingToGoogleSheets } from "./modules/sheets/sheets.service.js";
 import { pool } from "./db/pool.js";
 import { config } from "./config.js";
+import { loginDashboardUser } from "./modules/auth/auth.service.js";
+import { requireAuth, requireRole } from "./middleware/auth.middleware.js";
 
 const router = express.Router();
+const dashboardAuth = requireAuth();
+const dashboardAdminOnly = [dashboardAuth, requireRole(["admin"])];
 
 router.get("/health", (_req, res) => res.json({ ok: true }));
+
+router.post("/auth/login", async (req, res) => {
+  const username = String(req.body?.username || "").trim();
+  const password = String(req.body?.password || "");
+  if (!username || !password) {
+    return res.status(400).json({ error: "bad_request", message: "username and password are required" });
+  }
+  const result = await loginDashboardUser(username, password);
+  if (!result) {
+    return res.status(401).json({ error: "unauthorized", message: "Invalid credentials" });
+  }
+  return res.json(result);
+});
+
+router.get("/auth/me", dashboardAuth, async (req, res) => {
+  res.json({ user: req.user });
+});
 
 router.post("/webhook/waha", async (req, res, next) => {
   try {
@@ -44,7 +65,7 @@ router.post("/chat/precheck", async (req, res, next) => {
   }
 });
 
-router.post("/chat/pause", async (req, res, next) => {
+router.post("/chat/pause", dashboardAuth, async (req, res, next) => {
   try {
     await pauseAiForThread(req.body.threadId);
     res.json({ updated: true });
@@ -53,7 +74,7 @@ router.post("/chat/pause", async (req, res, next) => {
   }
 });
 
-router.post("/chat/non-ai", async (req, res, next) => {
+router.post("/chat/non-ai", dashboardAuth, async (req, res, next) => {
   try {
     await setNonAi(req.body.threadId, Boolean(req.body.nonAi));
     res.json({ updated: true, nonAi: Boolean(req.body.nonAi) });
@@ -87,7 +108,7 @@ router.post("/booking/create", async (req, res, next) => {
   }
 });
 
-router.get("/booking/today", async (_req, res, next) => {
+router.get("/booking/today", dashboardAuth, async (_req, res, next) => {
   try {
     const rows = await getTodayBookings();
     res.json({ bookings: rows });
@@ -121,7 +142,7 @@ router.post("/lead/ghosting/mark-sent", async (req, res, next) => {
   }
 });
 
-router.get("/threads", async (_req, res, next) => {
+router.get("/threads", dashboardAuth, async (_req, res, next) => {
   try {
     const [rows] = await pool.query(
       `SELECT
@@ -150,7 +171,7 @@ router.get("/threads", async (_req, res, next) => {
   }
 });
 
-router.get("/threads/:threadId/messages", async (req, res, next) => {
+router.get("/threads/:threadId/messages", dashboardAuth, async (req, res, next) => {
   try {
     const [rows] = await pool.query(
       `SELECT id, thread_id, direction, body, metadata, sent_at
@@ -165,7 +186,7 @@ router.get("/threads/:threadId/messages", async (req, res, next) => {
   }
 });
 
-router.get("/threads/ghosted", async (_req, res, next) => {
+router.get("/threads/ghosted", dashboardAuth, async (_req, res, next) => {
   try {
     const [rows] = await pool.query(
       `SELECT t.thread_id, t.wa_number,
@@ -244,7 +265,7 @@ router.post("/handover/escalate", async (req, res, next) => {
   }
 });
 
-router.get("/escalations", async (_req, res, next) => {
+router.get("/escalations", dashboardAuth, async (_req, res, next) => {
   try {
     const [rows] = await pool.query(
       `SELECT id, thread_id, type, target_role, reason, status, created_at
@@ -258,7 +279,7 @@ router.get("/escalations", async (_req, res, next) => {
   }
 });
 
-router.get("/workflow-rules", async (_req, res, next) => {
+router.get("/workflow-rules", dashboardAdminOnly, async (_req, res, next) => {
   try {
     const [rows] = await pool.query(
       `SELECT rule_key, enabled
@@ -275,7 +296,7 @@ router.get("/workflow-rules", async (_req, res, next) => {
   }
 });
 
-router.put("/workflow-rules", async (req, res, next) => {
+router.put("/workflow-rules", dashboardAdminOnly, async (req, res, next) => {
   try {
     const input = req.body?.rules || {};
     const entries = Object.entries(input).filter(([k]) => typeof k === "string");
@@ -307,7 +328,7 @@ router.put("/workflow-rules", async (req, res, next) => {
   }
 });
 
-router.get("/waha/sessions", async (_req, res, next) => {
+router.get("/waha/sessions", dashboardAuth, async (_req, res, next) => {
   try {
     const sessions = await getSessions();
     res.json(sessions);
@@ -323,7 +344,7 @@ router.get("/waha/sessions", async (_req, res, next) => {
   }
 });
 
-router.post("/waha/sessions", async (req, res, next) => {
+router.post("/waha/sessions", dashboardAuth, async (req, res, next) => {
   try {
     const requestedName = String(req.body?.name || "").trim() || "default";
 
@@ -342,7 +363,7 @@ router.post("/waha/sessions", async (req, res, next) => {
   }
 });
 
-router.post("/waha/sessions/:session/start", async (req, res, next) => {
+router.post("/waha/sessions/:session/start", dashboardAuth, async (req, res, next) => {
   try {
     const session = req.params.session;
     if (!session) {
@@ -358,7 +379,7 @@ router.post("/waha/sessions/:session/start", async (req, res, next) => {
   }
 });
 
-router.get("/waha/sessions/:session/qr", async (req, res, next) => {
+router.get("/waha/sessions/:session/qr", dashboardAuth, async (req, res, next) => {
   try {
     const session = req.params.session;
     if (!session) {
