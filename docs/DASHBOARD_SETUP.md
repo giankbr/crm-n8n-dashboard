@@ -4,7 +4,7 @@ The dashboard is a **React 19 + Vite** frontend that connects to the backend API
 
 ## Current Status ✅
 
-- **Backend Routes**: All required endpoints are fully implemented
+- **Backend Routes**: Core endpoints implemented (some routes require auth token)
 - **Vite Proxy**: Configured to proxy `/api` calls to `http://localhost:4000`
 - **React Components**: Built with Shadcn UI, ready for data binding
 - **API Hook**: `useDashboardData.js` handles all data fetching and auto-refresh
@@ -103,7 +103,10 @@ MySQL Database
 
 ---
 
-## API Endpoints (All Implemented)
+## API Endpoints
+
+> Important: dashboard endpoints are protected by bearer token in normal operation.  
+> Login first, then send `Authorization: Bearer <token>` on protected requests.
 
 ### Inbox / Threads
 

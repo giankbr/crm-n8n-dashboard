@@ -32,7 +32,7 @@ Urutan implementasi disarankan: Must → Should → Could.
 ### 1. WhatsApp Integration
 
 - Menggunakan WAHA (WhatsApp HTTP API)  
-- Support multi nomor (4 nomor WhatsApp)  
+- Default single session WhatsApp (`default`), multi-session sebagai pengembangan lanjutan  
 - Webhook untuk menerima pesan  
 - Kirim pesan (text, media, dll)  
 
@@ -50,14 +50,14 @@ Urutan implementasi disarankan: Must → Should → Could.
 
 ### 3. AI Integration
 
-- OpenAI API (GPT)  
-- Gemini API (opsional)  
+- OpenAI-compatible API (opsional, jika node/credential n8n diaktifkan)  
+- Gemini API (opsional, belum jadi alur utama)  
 
-Fungsi:
+Status implementasi saat ini:
 
-- Intent detection & subflow routing  
-- Natural language response  
-- Context understanding (thread + riwayat)  
+- Intent detection & subflow routing: **implemented (rule-based classifier)**  
+- Natural language response: **partial (template/keyword reply, belum full LLM)**  
+- Context understanding (thread + riwayat): **implemented untuk kebutuhan dasar**  
 
 ---
 
@@ -221,7 +221,7 @@ Contoh intent / cluster:
    └───────────────┘
         ↓
   ┌───────────────┐
-  │ OpenAI / AI   │
+  │ AI (optional) │
   └───────────────┘
         ↓
   ┌───────────────┐
@@ -240,7 +240,7 @@ Contoh intent / cluster:
 
 - n8n → automation workflow  
 - WAHA / WhatsApp API → komunikasi WhatsApp  
-- OpenAI API / Gemini → AI processing  
+- Rule-based classifier + optional OpenAI-compatible provider  
 - MySQL → database utama  
 - Google Sheet → opsional (laporan/mirror, bukan sumber kebenaran ganda tanpa aturan)  
 - VPS (Ubuntu) → hosting  
@@ -267,13 +267,10 @@ Contoh intent / cluster:
 
 ---
 
-### Multi WhatsApp Setup
+### Multi WhatsApp Setup (roadmap)
 
-- 4 session WAHA  
-- Tiap nomor:
-  - 1 session  
-  - 1 webhook  
-  - 1 routing logic  
+- Runtime default saat ini: 1 session WAHA (`default`)  
+- Multi-session per nomor WA tetap didukung sebagai pola deployment lanjutan  
 
 ---
 

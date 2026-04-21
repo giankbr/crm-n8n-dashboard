@@ -41,16 +41,13 @@ Import files from:
 - `POST /api/knowledge/reply` FAQ/consult reply
 - `POST /api/handover/escalate` open escalation
 
-## UAT Checklist (4 WA Sessions)
+## UAT Checklist (Current: 1 WA Session)
 
-Use sessions from `.env`:
+Default session:
 
-- `WA_SESSION_1=branch_pusat`
-- `WA_SESSION_2=branch_utara`
-- `WA_SESSION_3=branch_selatan`
-- `WA_SESSION_4=branch_timur`
+- `default`
 
-For each session:
+For the default session:
 
 1. Send inbound message -> verify `messages` row created.
 2. Toggle Non-AI -> verify AI stops responding.
@@ -63,7 +60,9 @@ For each session:
 9. Branch routing with coordinates -> target branch resolved.
 10. Complaint phrase -> intent logged as `komplain` and escalation created.
 
-Mark session pass/fail and attach logs from backend + n8n execution.
+Mark pass/fail and attach logs from backend + n8n execution.
+
+> Note: Multi-session UAT can be added after multi-bridge/multi-session deployment is enabled.
 
 ## Dashboard (Vite)
 

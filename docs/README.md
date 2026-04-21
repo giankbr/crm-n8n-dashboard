@@ -17,7 +17,7 @@ Complete documentation for the WhatsApp AI Chatbot CRM System.
 #### Component Guides
 - **[DATABASE.md](DATABASE.md)** — Database schema, migrations, SQL queries, backup/restore
 - **[WAHA_BRIDGE.md](WAHA_BRIDGE.md)** — WAHA polling bridge, deployment, monitoring
-- **[N8N_WORKFLOWS.md](N8N_WORKFLOWS.md)** — Complete n8n workflow implementation guide (3 workflows, 8 subflows)
+- **[N8N_WORKFLOWS.md](N8N_WORKFLOWS.md)** — n8n workflow implementation guide (3 workflows, subflow A-H + roadmap)
 
 ### 🔧 Configuration
 - **[../.env.example](../.env.example)** — Environment variables with detailed descriptions
@@ -35,13 +35,13 @@ Complete documentation for the WhatsApp AI Chatbot CRM System.
 
 ### 👨‍💻 Backend Developer
 - **Database**: [DATABASE.md](DATABASE.md)
-- **API Reference**: [N8N_WORKFLOWS.md](N8N_WORKFLOWS.md#api-endpoints)
+- **API Reference**: [N8N_WORKFLOWS.md](N8N_WORKFLOWS.md)
 - **WAHA Integration**: [WAHA_BRIDGE.md](WAHA_BRIDGE.md)
 - **Architecture**: [workflow.md](workflow.md)
 
 ### 🎨 Frontend Developer
 - **Dashboard**: [DASHBOARD_SETUP.md](DASHBOARD_SETUP.md)
-- **API Reference**: [DASHBOARD_SETUP.md](DASHBOARD_SETUP.md#api-endpoints-all-implemented)
+- **API Reference**: [DASHBOARD_SETUP.md](DASHBOARD_SETUP.md#api-endpoints)
 - **Component Structure**: [DASHBOARD_SETUP.md](DASHBOARD_SETUP.md#code-structure)
 
 ### 🔧 DevOps / Deployment
@@ -92,7 +92,7 @@ How messages flow through the system:
 - **F**: Routing cabang (branch routing)
 - **G**: Komplain (complaint handling)
 - **H**: Out of scope (fallback)
-- **I**: Ghosting/follow-up (future)
+- **I**: Ghosting/follow-up (partial, via scheduler workflow)
 
 ### Key Tables
 - **threads** — Conversations (one per WhatsApp number)
@@ -101,6 +101,31 @@ How messages flow through the system:
 - **pickup_requests** — Vehicle pickup requests
 - **escalations** — Unresolved cases requiring human review
 - **branches** — Service center locations
+
+---
+
+## Implementation Status Matrix
+
+Quick reference for current runtime status (source of truth: backend routes + workflow JSON + compose setup).
+
+| Area / Flow | Status | Notes |
+|-------------|--------|-------|
+| Inbound WA → bridge → n8n → DB | Implemented | End-to-end ingress is active via `scripts/waha-bridge.js` and `n8n/workflows/core_router.json`. |
+| Guardrail (Non-AI + AI pause) | Implemented | Available through `/api/chat/precheck`, `/api/chat/pause`, `/api/chat/non-ai`. |
+| Subflow A (Booking) | Implemented | Validate + create booking + scheduler fetch are available. |
+| Subflow B (Pickup) | Implemented | Distance rule `<2`, `2-7`, `>7` km is implemented. |
+| Subflow C (FAQ) | Implemented | Keyword/template response implemented. |
+| Subflow D (History nopol) | Implemented | History lookup endpoint available. |
+| Subflow E (Konsultasi) | Partial | Works with template/knowledge reply; not full LLM reasoning flow. |
+| Subflow F (Routing cabang) | Partial | Branch resolve exists; full transfer orchestration can be extended. |
+| Subflow G (Komplain) | Partial | Escalation flow exists; forcing Non-AI remains optional by workflow choice. |
+| Subflow H (Fallback/out-of-scope) | Implemented | Escalate + fallback reply flow available. |
+| Subflow I (Ghosting/follow-up) | Partial | Implemented via scheduler workflow, not a full standalone branch in all scenarios. |
+| Multi WA Session | Planned/Partial | Default runtime is single session `default`; multi-session needs dedicated deployment pattern. |
+| LLM Integration (OpenAI-compatible/Gemini) | Planned/Optional | Env and provider wiring exist; core intent path is currently rule-based. |
+| Dashboard auth + RBAC | Implemented | Login + bearer-protected operations are in place. |
+
+Legend: **Implemented** = ready in current default stack, **Partial** = available with limitations, **Planned** = documented roadmap / optional extension.
 
 ---
 
@@ -117,8 +142,8 @@ How messages flow through the system:
 → Trace through: [workflow.md](workflow.md) → [N8N_WORKFLOWS.md](N8N_WORKFLOWS.md) → [WAHA_BRIDGE.md](WAHA_BRIDGE.md)
 
 ### Connect a new WhatsApp number
-→ [WAHA_BRIDGE.md](WAHA_BRIDGE.md) (multi-session setup)  
-→ [N8N_WORKFLOWS.md](N8N_WORKFLOWS.md#multi-session-setup)
+→ [WAHA_BRIDGE.md](WAHA_BRIDGE.md) (single session default + optional multi-session setup)  
+→ [N8N_WORKFLOWS.md](N8N_WORKFLOWS.md)
 
 ### Deploy to production
 → [QUICK_START.md](QUICK_START.md#production-deployment)  

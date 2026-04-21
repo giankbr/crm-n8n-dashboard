@@ -54,6 +54,9 @@ services:
       - N8N_PROTOCOL=http
       - WEBHOOK_URL=http://${N8N_HOST}:5678/
       - GENERIC_TIMEZONE=${TIMEZONE}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - AI_BASE_URL=${AI_BASE_URL:-}
+      - AI_MODEL=${AI_MODEL:-}
     ports:
       - "5678:5678"
     volumes:
@@ -90,6 +93,10 @@ services:
       - MYSQL_USER=${MYSQL_USER:-chatbot_user}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD:-chatbot_pass}
       - AI_PAUSE_MINUTES=15
+      - AI_PROVIDER=${AI_PROVIDER:-}
+      - AI_BASE_URL=${AI_BASE_URL:-}
+      - AI_MODEL=${AI_MODEL:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - WAHA_BASE_URL=http://host.docker.internal:3000
       - WAHA_DASHBOARD_URL=${WAHA_DASHBOARD_URL:-http://localhost:3000}
       - WAHA_DASHBOARD_USERNAME=${WAHA_DASHBOARD_USERNAME:-admin}

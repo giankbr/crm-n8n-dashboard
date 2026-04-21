@@ -1,13 +1,13 @@
 # n8n Workflows Implementation Guide
 
-This document provides step-by-step instructions to build and test the WhatsApp AI CRM workflows in n8n.
+This document provides step-by-step instructions to build and test WhatsApp CRM workflows in n8n.
 
 ## Overview
 
 Three main workflows orchestrate the chatbot:
 
 1. **wa-core-router** — Main incoming message handler (webhook → classify → route → respond)
-2. **scheduler-reminders** — Daily bookings reminder (cron → fetch bookings → send reminders)
+2. **scheduler-reminders** — Daily bookings reminder + follow-up support (cron → fetch bookings/leads → send reminders)
 3. **escalation-notifications** — Alert system for unresolved cases (webhook → notify admin)
 
 ## Prerequisites
@@ -369,7 +369,7 @@ Get Service History (from plate)
 
 ---
 
-### Subflow E: Konsultasi & Rekomendasi
+### Subflow E: Konsultasi & Rekomendasi (Current: template/knowledge-based)
 
 #### Nodes to Add
 
@@ -406,7 +406,7 @@ Send Recommendation
 
 ---
 
-### Subflow F: Routing to Nearest Branch
+### Subflow F: Routing to Nearest Branch (Current: resolve branch, transfer orchestration can be extended)
 
 #### Nodes to Add
 
@@ -453,7 +453,7 @@ Resolve Nearest Branch
 
 ---
 
-### Subflow G: Komplain & Empati
+### Subflow G: Komplain & Empati (Set Non-AI remains optional)
 
 #### Nodes to Add
 
