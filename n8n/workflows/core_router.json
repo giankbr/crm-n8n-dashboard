@@ -205,7 +205,7 @@
         "conditions": {
           "boolean": [
             {
-              "value1": "={{ !!$json[\"bookingPayload\"] }}",
+              "value1": "={{ !!($json[\"bookingPayload\"] && $json[\"bookingPayload\"].threadId && $json[\"bookingPayload\"].vehicle && $json[\"bookingPayload\"].plate && $json[\"bookingPayload\"].scheduleAt) }}",
               "operation": "isTrue"
             }
           ]
@@ -226,7 +226,7 @@
         "url": "http://backend:4000/api/booking/create",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ $json.bookingPayload || {} }}"
+        "jsonBody": "={{ $json.bookingPayload }}"
       }
     },
     {
