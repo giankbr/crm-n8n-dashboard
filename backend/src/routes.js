@@ -425,7 +425,33 @@ router.post("/waha/send-text", async (req, res, next) => {
       });
     }
 
-    const result = await sendText(session, chatIdRaw, text);
+    let destinationChatId = chatIdRaw;
+    const waNumber = String(req.body?.waNumber || (!chatIdRaw.includes("@") ? chatIdRaw : "")).trim();
+
+    // Some WAHA accounts use @lid IDs. If caller only sends waNumber,
+    // try resolving the latest known chatId from stored incoming metadata.
+    if (!destinationChatId.includes("@") && waNumber) {
+      const [rows] = await pool.query(
+        `SELECT m.metadata
+         FROM messages m
+         INNER JOIN threads t ON t.thread_id = m.thread_id
+         WHERE t.wa_number = ?
+         ORDER BY m.sent_at DESC
+         LIMIT 5`,
+        [waNumber]
+      );
+
+      for (const row of rows) {
+        const meta = typeof row.metadata === "string" ? JSON.parse(row.metadata) : row.metadata;
+        const candidate = String(meta?.chatId || meta?.from || "").trim();
+        if (candidate.includes("@")) {
+          destinationChatId = candidate;
+          break;
+        }
+      }
+    }
+
+    const result = await sendText(session, destinationChatId, text);
     res.json({ ok: true, ...result });
   } catch (error) {
     next(error);
