@@ -205,7 +205,7 @@
         "conditions": {
           "boolean": [
             {
-              "value1": "={{$json[\"completed\"]}}",
+              "value1": "={{ !!$json[\"bookingPayload\"] }}",
               "operation": "isTrue"
             }
           ]
@@ -963,14 +963,14 @@
       "main": [
         [
           {
-            "node": "Reply Booking Invalid (A)",
+            "node": "Create Booking (A)",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Create Booking (A)",
+            "node": "Reply Booking Invalid (A)",
             "type": "main",
             "index": 0
           }

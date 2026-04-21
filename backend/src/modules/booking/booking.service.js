@@ -167,6 +167,8 @@ function extractPickupFlag(text = "") {
   const t = String(text || "").toLowerCase();
   if (/\b(pickup|jemput|antar[-\s]?jemput)\b/.test(t)) return true;
   if (/\b(tidak pickup|ga pickup|gak pickup|tanpa pickup|datang sendiri)\b/.test(t)) return false;
+  if (/^\s*y\s*$/i.test(t)) return true;
+  if (/^\s*n\s*$/i.test(t)) return false;
   if (/^\s*(ya|iya|yes)\s*$/.test(t)) return true;
   if (/^\s*(tidak|ga|gak|no|nggak)\s*$/.test(t)) return false;
   return null;
