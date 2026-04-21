@@ -134,8 +134,31 @@ export async function getSessionQR(session) {
   let lastError;
   for (const path of candidates) {
     try {
-      const result = await wahaRequest(path, { method: "GET" });
-      return result;
+      const url = `${config.waha.baseUrl}${path}`;
+      const response = await fetch(url, {
+        method: "GET",
+        headers: getWahaAuthHeaders()
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "");
+        throw new Error(`WAHA ${response.status}: ${errorText || "Unknown error"}`);
+      }
+
+      const contentType = String(response.headers.get("content-type") || "").toLowerCase();
+
+      // Some WAHA versions return raw PNG bytes for QR.
+      if (contentType.includes("image/")) {
+        const buffer = Buffer.from(await response.arrayBuffer());
+        return {
+          base64: buffer.toString("base64"),
+          mimeType: contentType.split(";")[0]
+        };
+      }
+
+      // Other WAHA versions return JSON payload with qr/base64 keys.
+      const text = await response.text();
+      return text ? JSON.parse(text) : {};
     } catch (error) {
       lastError = error;
     }
