@@ -226,7 +226,7 @@
         "url": "http://backend:4000/api/booking/create",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ $node[\"Validate Booking (A)\"].json.bookingPayload }}"
+        "jsonBody": "={{ $json.bookingPayload || {} }}"
       }
     },
     {
@@ -963,14 +963,14 @@
       "main": [
         [
           {
-            "node": "Create Booking (A)",
+            "node": "Reply Booking Invalid (A)",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Reply Booking Invalid (A)",
+            "node": "Create Booking (A)",
             "type": "main",
             "index": 0
           }
