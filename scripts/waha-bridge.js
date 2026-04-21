@@ -62,9 +62,11 @@ function normalizeIncoming(chat) {
   if (!messageId) return null;
   if (seenMessageIds.has(messageId)) return null;
 
-  const rawFrom = msg.from || chat?.id?._serialized || "";
-  const waNumber = String(rawFrom).replace(/@.+$/, "");
-  const chatId = String(rawFrom || "");
+  const chatId = String(chat?.id?._serialized || msg.from || "");
+  const rawFrom = String(msg.from || chatId || "");
+  const waFromChatId = chatId.includes("@c.us") ? chatId.replace(/@c\.us$/, "") : "";
+  const waFromMsg = rawFrom.replace(/@.+$/, "");
+  const waNumber = String(waFromChatId || waFromMsg).replace(/[^\d]/g, "");
   const body = String(msg.body || "").trim();
   if (!waNumber || !body) return null;
 

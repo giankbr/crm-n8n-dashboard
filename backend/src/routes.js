@@ -408,13 +408,13 @@ router.get("/waha/sessions/:session/qr", dashboardAuth, async (req, res, next) =
 router.post("/waha/send-text", async (req, res, next) => {
   try {
     const session = String(req.body?.session || "default").trim() || "default";
-    const chatIdRaw = String(req.body?.chatId || req.body?.to || "").trim();
+    const chatIdRaw = String(req.body?.chatId || req.body?.to || req.body?.waNumber || "").trim();
     const text = String(req.body?.text || "").trim();
 
     if (!chatIdRaw) {
       return res.status(400).json({
         error: "bad_request",
-        message: "chatId (or 'to') is required"
+        message: "chatId, to, or waNumber is required"
       });
     }
 
