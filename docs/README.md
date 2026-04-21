@@ -206,7 +206,7 @@ When adding new features, update the relevant documentation:
 
 ---
 
-**Last Updated**: April 7, 2026  
-**Version**: 1.0.0
+**Last Updated**: April 21, 2026  
+**Version**: 1.0.1
 
 For issues, feature requests, or documentation improvements, please open an issue on GitHub.
