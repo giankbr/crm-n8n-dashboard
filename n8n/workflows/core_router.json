@@ -230,7 +230,7 @@
         "url": "http://backend:4000/api/booking/create",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ $json.bookingPayload || {} }}"
+        "jsonBody": "={{ $node[\"Validate Booking (A)\"].json.bookingPayload || {} }}"
       }
     },
     {
@@ -837,6 +837,26 @@
         },
         "fallbackOutput": -1
       }
+    },
+    {
+      "id": "BookingPayloadGuardA",
+      "name": "Booking Payload Guard (A)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        140
+      ],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ !!($json[\"bookingPayload\"] && $json[\"bookingPayload\"].scheduleAt) }}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      }
     }
   ],
   "connections": {
@@ -967,7 +987,7 @@
       "main": [
         [
           {
-            "node": "Create Booking (A)",
+            "node": "Booking Payload Guard (A)",
             "type": "main",
             "index": 0
           }
@@ -1236,6 +1256,24 @@
         [
           {
             "node": "Escalate Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Booking Payload Guard (A)": {
+      "main": [
+        [
+          {
+            "node": "Create Booking (A)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reply Booking Invalid (A)",
             "type": "main",
             "index": 0
           }

@@ -23,23 +23,50 @@ export function validateBookingWindow(scheduleAt, branchCloseHour = "17:00", wee
 }
 
 export async function createBooking(payload) {
-  const normalizedScheduleAt = normalizeScheduleAt(payload.scheduleAt);
+  const resolvedPayload = await hydrateBookingPayloadFromDraft(payload || {});
+  const normalizedScheduleAt = normalizeScheduleAt(resolvedPayload.scheduleAt);
   const [result] = await pool.query(
     `INSERT INTO bookings
       (customer_id, thread_id, vehicle, plate, service_type, schedule_at, branch_id, pickup_flag, status)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
     [
-      payload.customerId || null,
-      payload.threadId,
-      payload.vehicle,
-      payload.plate,
-      payload.serviceType || null,
+      resolvedPayload.customerId || null,
+      resolvedPayload.threadId,
+      resolvedPayload.vehicle,
+      resolvedPayload.plate,
+      resolvedPayload.serviceType || null,
       normalizedScheduleAt,
-      payload.branchId || null,
-      payload.pickupFlag ? 1 : 0
+      resolvedPayload.branchId || null,
+      resolvedPayload.pickupFlag ? 1 : 0
     ]
   );
   return { bookingId: result.insertId };
+}
+
+async function hydrateBookingPayloadFromDraft(payload = {}) {
+  const base = { ...(payload || {}) };
+  if (!base.threadId) return base;
+  if (base.vehicle && base.plate && base.scheduleAt) return base;
+
+  const [rows] = await pool.query(
+    `SELECT vehicle, plate, schedule_at, service_type, pickup_flag
+     FROM booking_drafts
+     WHERE thread_id = ?
+     LIMIT 1`,
+    [base.threadId]
+  );
+  const draft = rows[0];
+  if (!draft) return base;
+
+  return {
+    ...base,
+    vehicle: base.vehicle || draft.vehicle || null,
+    plate: base.plate || draft.plate || null,
+    scheduleAt: base.scheduleAt || draft.schedule_at || null,
+    serviceType: base.serviceType || draft.service_type || "servis berkala",
+    pickupFlag:
+      base.pickupFlag !== undefined && base.pickupFlag !== null ? Boolean(base.pickupFlag) : Boolean(draft.pickup_flag)
+  };
 }
 
 function normalizeScheduleAt(value) {
