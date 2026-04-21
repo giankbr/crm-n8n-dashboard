@@ -132,3 +132,14 @@ export async function pauseAiForThread(threadId) {
 export async function setNonAi(threadId, nonAi) {
   await pool.query("UPDATE threads SET non_ai = ? WHERE thread_id = ?", [nonAi ? 1 : 0, threadId]);
 }
+
+export async function clearThreadGuards(threadId) {
+  await pool.query(
+    `UPDATE threads
+     SET non_ai = FALSE,
+         ai_paused_until = NULL
+     WHERE thread_id = ?`,
+    [threadId]
+  );
+  return { cleared: true, threadId };
+}

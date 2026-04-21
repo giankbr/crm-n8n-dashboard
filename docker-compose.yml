@@ -97,6 +97,9 @@ services:
       - AI_BASE_URL=${AI_BASE_URL:-}
       - AI_MODEL=${AI_MODEL:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - AI_FALLBACK_PROVIDER=${AI_FALLBACK_PROVIDER:-none}
+      - DOCS_DIR=${DOCS_DIR:-/app/docs}
+      - DOCS_TOP_K=${DOCS_TOP_K:-4}
       - WAHA_BASE_URL=http://host.docker.internal:3000
       - WAHA_DASHBOARD_URL=${WAHA_DASHBOARD_URL:-http://localhost:3000}
       - WAHA_DASHBOARD_USERNAME=${WAHA_DASHBOARD_USERNAME:-admin}
@@ -107,5 +110,7 @@ services:
       - NODE_ENV=production
     ports:
       - "4000:4000"
+    volumes:
+      - ./docs:/app/docs:ro
     depends_on:
       - mysql

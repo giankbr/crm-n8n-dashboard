@@ -3,19 +3,21 @@ import {
   persistIncomingMessage,
   precheckThreadState,
   pauseAiForThread,
-  setNonAi
+  setNonAi,
+  clearThreadGuards
 } from "./modules/chat/chat.service.js";
 import { classifyIntent } from "./modules/intent/intent.service.js";
 import {
   createBooking,
   getBookingById,
   getTodayBookings,
+  processBookingForm,
   validateBookingWindow
 } from "./modules/booking/booking.service.js";
-import { createPickupRequest, validatePickup } from "./modules/pickup/pickup.service.js";
+import { createPickupRequest, parseAndValidatePickup, validatePickup } from "./modules/pickup/pickup.service.js";
 import { resolveBranch } from "./modules/routing/routing.service.js";
 import { buildKnowledgeReply, getServiceHistoryByPlate } from "./modules/knowledge/knowledge.service.js";
-import { escalate } from "./modules/admin/admin.service.js";
+import { escalate, resolveEscalationsByThread } from "./modules/admin/admin.service.js";
 import { sendText, getSessions, startSession, getSessionQR, createSession, healthCheck } from "./modules/waha/waha.service.js";
 import { getGhostingLeads, markGhostingFollowupSent } from "./modules/lead/lead.service.js";
 import { syncBookingToGoogleSheets } from "./modules/sheets/sheets.service.js";
@@ -23,6 +25,7 @@ import { pool } from "./db/pool.js";
 import { config } from "./config.js";
 import { loginDashboardUser } from "./modules/auth/auth.service.js";
 import { requireAuth, requireRole } from "./middleware/auth.middleware.js";
+import { normalizeChatId, normalizeWaNumber } from "./utils/wa-identity.js";
 
 const router = express.Router();
 const dashboardAuth = requireAuth();
@@ -50,6 +53,10 @@ router.get("/auth/me", dashboardAuth, async (req, res) => {
 router.post("/webhook/waha", async (req, res, next) => {
   try {
     const thread = await persistIncomingMessage(req.body);
+    const traceId = String(req.body?.traceId || req.body?.body?.traceId || req.body?.messageId || "").trim();
+    if (traceId) {
+      console.log(`[trace:${traceId}] webhook persisted`, { threadId: thread.thread_id });
+    }
     res.json({ threadId: thread.thread_id, stored: true });
   } catch (error) {
     next(error);
@@ -83,6 +90,27 @@ router.post("/chat/non-ai", dashboardAuth, async (req, res, next) => {
   }
 });
 
+router.post("/chat/resolve-case", dashboardAuth, async (req, res, next) => {
+  try {
+    const threadId = String(req.body?.threadId || "").trim();
+    if (!threadId) {
+      return res.status(400).json({ error: "bad_request", message: "threadId is required" });
+    }
+    const notes = String(req.body?.notes || "").trim() || null;
+    const guards = await clearThreadGuards(threadId);
+    const escalations = await resolveEscalationsByThread(threadId, notes);
+    res.json({
+      updated: true,
+      threadId,
+      guards,
+      escalations,
+      policy: "auto_clear_non_ai_and_pause_on_case_resolution"
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.post("/chat/classify", async (req, res, next) => {
   try {
     const result = await classifyIntent(req.body);
@@ -103,6 +131,18 @@ router.post("/booking/create", async (req, res, next) => {
     const booking = await getBookingById(result.bookingId);
     const sheets = await syncBookingToGoogleSheets(booking || result);
     res.json({ ...result, sheets });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/booking/process", async (req, res, next) => {
+  try {
+    const result = await processBookingForm({
+      threadId: String(req.body?.threadId || "").trim(),
+      text: String(req.body?.text || "")
+    });
+    res.json(result);
   } catch (error) {
     next(error);
   }
@@ -220,6 +260,14 @@ router.post("/pickup/validate", async (req, res) => {
   res.json(result);
 });
 
+router.post("/pickup/validate-text", async (req, res) => {
+  const result = parseAndValidatePickup({
+    text: req.body?.text || req.body?.body || "",
+    distanceKm: req.body?.distanceKm
+  });
+  res.json(result);
+});
+
 router.post("/pickup/create", async (req, res, next) => {
   try {
     const result = await createPickupRequest(req.body);
@@ -259,7 +307,11 @@ router.post("/knowledge/reply", async (req, res, next) => {
 router.post("/handover/escalate", async (req, res, next) => {
   try {
     const result = await escalate(req.body);
-    res.json(result);
+    const userText = String(req.body?.userText || "").trim();
+    if (!userText) return res.json(result);
+
+    const knowledge = await buildKnowledgeReply({ text: userText, source: "fallback" });
+    res.json({ ...result, reply: knowledge.reply, knowledgeRoute: knowledge.route, sources: knowledge.sources || [] });
   } catch (error) {
     next(error);
   }
@@ -410,6 +462,7 @@ router.post("/waha/send-text", async (req, res, next) => {
     const session = String(req.body?.session || "default").trim() || "default";
     const chatIdRaw = String(req.body?.chatId || req.body?.to || req.body?.waNumber || "").trim();
     const text = String(req.body?.text || "").trim();
+    const traceId = String(req.body?.traceId || "").trim();
 
     if (!chatIdRaw) {
       return res.status(400).json({
@@ -426,7 +479,7 @@ router.post("/waha/send-text", async (req, res, next) => {
     }
 
     let destinationChatId = chatIdRaw;
-    const waNumber = String(req.body?.waNumber || (!chatIdRaw.includes("@") ? chatIdRaw : "")).trim();
+    const waNumber = normalizeWaNumber(req.body?.waNumber || (!chatIdRaw.includes("@") ? chatIdRaw : ""));
 
     // Some WAHA accounts use @lid IDs. If caller only sends waNumber,
     // try resolving the latest known chatId from stored incoming metadata.
@@ -451,8 +504,40 @@ router.post("/waha/send-text", async (req, res, next) => {
       }
     }
 
+    destinationChatId = normalizeChatId(destinationChatId);
     const result = await sendText(session, destinationChatId, text);
-    res.json({ ok: true, ...result });
+    if (traceId) {
+      console.log(`[trace:${traceId}] send-text`, { session, destinationChatId });
+    }
+    res.json({ ok: true, traceId: traceId || null, ...result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/trace/messages", dashboardAuth, async (req, res, next) => {
+  try {
+    const messageId = String(req.query?.messageId || "").trim();
+    const traceId = String(req.query?.traceId || "").trim();
+    if (!messageId && !traceId) {
+      return res.status(400).json({ error: "bad_request", message: "messageId or traceId is required" });
+    }
+    const tracePattern = traceId ? `%${traceId}%` : null;
+    const [rows] = await pool.query(
+      `SELECT m.id, m.thread_id, t.wa_number, m.message_id, m.direction, m.body, m.metadata, m.sent_at
+       FROM messages m
+       INNER JOIN threads t ON t.thread_id = m.thread_id
+       WHERE (? = '' OR m.message_id = ?)
+         AND (? IS NULL OR CAST(m.metadata AS CHAR) LIKE ?)
+       ORDER BY m.sent_at DESC, m.id DESC
+       LIMIT 200`,
+      [messageId, messageId, tracePattern, tracePattern]
+    );
+    res.json({
+      query: { messageId: messageId || null, traceId: traceId || null },
+      total: rows.length,
+      traces: rows
+    });
   } catch (error) {
     next(error);
   }

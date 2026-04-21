@@ -6,6 +6,7 @@
       "name": "WA Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 3,
+      "webhookId": "6c49f50a-93d7-4d42-b487-c5497d31b203",
       "position": [
         200,
         320
@@ -171,7 +172,7 @@
         "url": "http://backend:4000/api/handover/escalate",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n\"threadId\": $node[\"Persist Message\"].json.threadId || '',\n  \"type\": \"fallback\",\n  \"targetRole\": \"cs\",\n  \"reason\": `Auto fallback from intent classifier: ${$json.intent || 'unknown'}`\n}) }}"
+        "jsonBody": "={{ ({\n\"threadId\": $node[\"Persist Message\"].json.threadId || '',\n  \"type\": \"fallback\",\n  \"targetRole\": \"cs\",\n  \"reason\": `Auto fallback from intent classifier: ${$json.intent || 'unknown'}`,\n  \"userText\": $node[\"WA Webhook\"].json.body?.body || $node[\"WA Webhook\"].json.body || \"\"\n}) }}"
       }
     },
     {
@@ -185,10 +186,10 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "http://backend:4000/api/booking/validate",
+        "url": "http://backend:4000/api/booking/process",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n\"scheduleAt\": $node[\"WA Webhook\"].json.body?.scheduleAt || $node[\"WA Webhook\"].json.scheduleAt || $now.plus({ days: 1 }).set({ hour: 10, minute: 0, second: 0, millisecond: 0 }).toISO(),\n  \"branchCloseHour\": \"17:00\",\n  \"weekendCloseHour\": \"16:00\"\n}) }}"
+        "jsonBody": "={{ ({\n\"threadId\": $node[\"Persist Message\"].json.threadId,\n  \"text\": $node[\"WA Webhook\"].json.body?.body || $node[\"WA Webhook\"].json.body || $node[\"WA Webhook\"].json.text || \"\"\n}) }}"
       }
     },
     {
@@ -204,7 +205,7 @@
         "conditions": {
           "boolean": [
             {
-              "value1": "={{$json[\"valid\"]}}",
+              "value1": "={{$json[\"completed\"]}}",
               "operation": "isTrue"
             }
           ]
@@ -225,7 +226,7 @@
         "url": "http://backend:4000/api/booking/create",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n\"threadId\": $node[\"Persist Message\"].json.threadId,\n  \"vehicle\": $node[\"WA Webhook\"].json.body?.vehicle || \"Honda Vario 125\",\n  \"plate\": $node[\"WA Webhook\"].json.body?.plate || \"B1234XYZ\",\n  \"serviceType\": $node[\"WA Webhook\"].json.body?.serviceType || \"servis berkala\",\n  \"scheduleAt\": $node[\"WA Webhook\"].json.body?.scheduleAt || $node[\"WA Webhook\"].json.scheduleAt || $now.plus({ days: 1 }).set({ hour: 10, minute: 0, second: 0, millisecond: 0 }).toISO(),\n  \"pickupFlag\": false\n}) }}"
+        "jsonBody": "={{ $node[\"Validate Booking (A)\"].json.bookingPayload }}"
       }
     },
     {
@@ -242,7 +243,7 @@
         "url": "http://backend:4000/api/waha/send-text",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Halo, pesan kamu sudah kami teruskan ke admin kami ya. Mohon tunggu sebentar \ud83d\ude4f\"\n}) }}"
+        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"traceId\": $node[\"WA Webhook\"].json.body?.traceId || $node[\"WA Webhook\"].json.traceId || ( $node[\"WA Webhook\"].json.body?.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.body?.messageId) : ( $node[\"WA Webhook\"].json.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.messageId) : \"\" ) ),\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\":  $node[\"Escalate Fallback\"].json.reply || \"Halo, pesan kamu sudah kami teruskan ke admin kami ya. Mohon tunggu sebentar \ud83d\ude4f\"\n}) }}"
       }
     },
     {
@@ -259,7 +260,7 @@
         "url": "http://backend:4000/api/waha/send-text",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": `Booking berhasil dibuat. ID booking kamu: ${$json.bookingId}. Tim kami akan konfirmasi segera.`\n}) }}"
+        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"traceId\": $node[\"WA Webhook\"].json.body?.traceId || $node[\"WA Webhook\"].json.traceId || ( $node[\"WA Webhook\"].json.body?.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.body?.messageId) : ( $node[\"WA Webhook\"].json.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.messageId) : \"\" ) ),\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": `Booking berhasil dibuat. ID booking kamu: ${$json.bookingId}. Tim kami akan konfirmasi segera.`\n}) }}"
       }
     },
     {
@@ -276,7 +277,7 @@
         "url": "http://backend:4000/api/waha/send-text",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Jadwal booking yang dipilih terlalu mepet jam tutup. Coba pilih jadwal lain ya \ud83d\ude4f\"\n}) }}"
+        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"traceId\": $node[\"WA Webhook\"].json.body?.traceId || $node[\"WA Webhook\"].json.traceId || ( $node[\"WA Webhook\"].json.body?.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.body?.messageId) : ( $node[\"WA Webhook\"].json.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.messageId) : \"\" ) ),\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": $node[\"Validate Booking (A)\"].json.reply || \"Boleh lengkapi data booking dulu ya.\"\n}) }}"
       }
     },
     {
@@ -290,10 +291,10 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "http://backend:4000/api/pickup/validate",
+        "url": "http://backend:4000/api/pickup/validate-text",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n\"distanceKm\": Number($node[\"WA Webhook\"].json.body?.distanceKm || 1.5)\n}) }}"
+        "jsonBody": "={{ ({\n\"text\": $node[\"WA Webhook\"].json.body?.body || $node[\"WA Webhook\"].json.body || \"\",\n  \"distanceKm\": $node[\"WA Webhook\"].json.body?.distanceKm ?? $node[\"WA Webhook\"].json.distanceKm ?? null\n}) }}"
       }
     },
     {
@@ -367,7 +368,7 @@
         "url": "http://backend:4000/api/waha/send-text",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Pickup berhasil dikonfirmasi. Tim kami akan lanjut proses penjemputan sesuai jadwal.\"\n}) }}"
+        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"traceId\": $node[\"WA Webhook\"].json.body?.traceId || $node[\"WA Webhook\"].json.traceId || ( $node[\"WA Webhook\"].json.body?.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.body?.messageId) : ( $node[\"WA Webhook\"].json.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.messageId) : \"\" ) ),\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Pickup berhasil dikonfirmasi. Tim kami akan lanjut proses penjemputan sesuai jadwal.\"\n}) }}"
       }
     },
     {
@@ -401,7 +402,7 @@
         "url": "http://backend:4000/api/waha/send-text",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Pickup kamu kami terima, tapi perlu validasi admin dulu karena jarak di atas 2 km. Tim kami segera hubungi ya.\"\n}) }}"
+        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"traceId\": $node[\"WA Webhook\"].json.body?.traceId || $node[\"WA Webhook\"].json.traceId || ( $node[\"WA Webhook\"].json.body?.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.body?.messageId) : ( $node[\"WA Webhook\"].json.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.messageId) : \"\" ) ),\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Pickup kamu kami terima, tapi perlu validasi admin dulu karena jarak di atas 2 km. Tim kami segera hubungi ya.\"\n}) }}"
       }
     },
     {
@@ -418,7 +419,7 @@
         "url": "http://backend:4000/api/waha/send-text",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Maaf, layanan pickup saat ini maksimal 7 km dari bengkel. Kami bisa bantu booking datang langsung ya.\"\n}) }}"
+        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"traceId\": $node[\"WA Webhook\"].json.body?.traceId || $node[\"WA Webhook\"].json.traceId || ( $node[\"WA Webhook\"].json.body?.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.body?.messageId) : ( $node[\"WA Webhook\"].json.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.messageId) : \"\" ) ),\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Maaf, layanan pickup saat ini maksimal 7 km dari bengkel. Kami bisa bantu booking datang langsung ya.\"\n}) }}"
       }
     },
     {
@@ -452,7 +453,7 @@
         "url": "http://backend:4000/api/waha/send-text",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": $json.reply || \"Jam operasional kami weekday 08:00-17:00 dan weekend 08:00-16:00 ya.\"\n}) }}"
+        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"traceId\": $node[\"WA Webhook\"].json.body?.traceId || $node[\"WA Webhook\"].json.traceId || ( $node[\"WA Webhook\"].json.body?.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.body?.messageId) : ( $node[\"WA Webhook\"].json.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.messageId) : \"\" ) ),\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": $json.reply || \"Jam operasional kami weekday 08:00-17:00 dan weekend 08:00-16:00 ya.\"\n}) }}"
       }
     },
     {
@@ -503,7 +504,7 @@
         "url": "http://backend:4000/api/waha/send-text",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Riwayat servis ditemukan. Servis terakhir: \" + ($json.history?.last_service_at || \"-\") + \". Catatan: \" + ($json.history?.notes || \"tidak ada\")\n}) }}"
+        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"traceId\": $node[\"WA Webhook\"].json.body?.traceId || $node[\"WA Webhook\"].json.traceId || ( $node[\"WA Webhook\"].json.body?.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.body?.messageId) : ( $node[\"WA Webhook\"].json.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.messageId) : \"\" ) ),\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Riwayat servis ditemukan. Servis terakhir: \" + ($json.history?.last_service_at || \"-\") + \". Catatan: \" + ($json.history?.notes || \"tidak ada\")\n}) }}"
       }
     },
     {
@@ -520,7 +521,7 @@
         "url": "http://backend:4000/api/waha/send-text",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Maaf, riwayat servis belum ditemukan untuk nopol itu. Bisa kirim ulang format nopolnya ya.\"\n}) }}"
+        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"traceId\": $node[\"WA Webhook\"].json.body?.traceId || $node[\"WA Webhook\"].json.traceId || ( $node[\"WA Webhook\"].json.body?.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.body?.messageId) : ( $node[\"WA Webhook\"].json.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.messageId) : \"\" ) ),\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Maaf, riwayat servis belum ditemukan untuk nopol itu. Bisa kirim ulang format nopolnya ya.\"\n}) }}"
       }
     },
     {
@@ -554,7 +555,7 @@
         "url": "http://backend:4000/api/waha/send-text",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": $json.reply || \"Bisa dijelaskan gejala motornya? Nanti kami bantu rekomendasi awal ya.\"\n}) }}"
+        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"traceId\": $node[\"WA Webhook\"].json.body?.traceId || $node[\"WA Webhook\"].json.traceId || ( $node[\"WA Webhook\"].json.body?.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.body?.messageId) : ( $node[\"WA Webhook\"].json.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.messageId) : \"\" ) ),\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": $json.reply || \"Bisa dijelaskan gejala motornya? Nanti kami bantu rekomendasi awal ya.\"\n}) }}"
       }
     },
     {
@@ -608,7 +609,7 @@
         "url": "http://backend:4000/api/waha/send-text",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Cabang terdekat untuk kamu: \" + ($json.targetBranch || \"-\") + \" (jarak \" + ($json.distanceKm || \"-\") + \" km).\"\n}) }}"
+        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"traceId\": $node[\"WA Webhook\"].json.body?.traceId || $node[\"WA Webhook\"].json.traceId || ( $node[\"WA Webhook\"].json.body?.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.body?.messageId) : ( $node[\"WA Webhook\"].json.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.messageId) : \"\" ) ),\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Cabang terdekat untuk kamu: \" + ($json.targetBranch || \"-\") + \" (jarak \" + ($json.distanceKm || \"-\") + \" km).\"\n}) }}"
       }
     },
     {
@@ -625,7 +626,7 @@
         "url": "http://backend:4000/api/waha/send-text",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Lokasi kamu belum bisa diproses untuk routing cabang. Boleh kirim share location ya.\"\n}) }}"
+        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"traceId\": $node[\"WA Webhook\"].json.body?.traceId || $node[\"WA Webhook\"].json.traceId || ( $node[\"WA Webhook\"].json.body?.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.body?.messageId) : ( $node[\"WA Webhook\"].json.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.messageId) : \"\" ) ),\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Lokasi kamu belum bisa diproses untuk routing cabang. Boleh kirim share location ya.\"\n}) }}"
       }
     },
     {
@@ -659,7 +660,7 @@
         "url": "http://backend:4000/api/waha/send-text",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Mohon maaf atas ketidaknyamanannya. Laporan kamu sudah kami eskalasi ke admin untuk ditindaklanjuti.\"\n}) }}"
+        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"traceId\": $node[\"WA Webhook\"].json.body?.traceId || $node[\"WA Webhook\"].json.traceId || ( $node[\"WA Webhook\"].json.body?.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.body?.messageId) : ( $node[\"WA Webhook\"].json.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.messageId) : \"\" ) ),\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Mohon maaf atas ketidaknyamanannya. Laporan kamu sudah kami eskalasi ke admin untuk ditindaklanjuti.\"\n}) }}"
       }
     },
     {
@@ -676,7 +677,7 @@
         "url": "http://backend:4000/api/waha/send-text",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": $node[\"WA Webhook\"].json.body?.broadcastCode === \"CXCT01\"\n    ? \"Promo CXCT01 aktif. Tim kami siap bantu proses booking/pickup kamu sekarang.\"\n    : $node[\"WA Webhook\"].json.body?.broadcastCode === \"CXCT02\"\n      ? \"Terima kasih follow-up CXCT02. Boleh kirim jadwal yang kamu inginkan?\"\n      : $node[\"WA Webhook\"].json.body?.broadcastCode === \"CXCT03\"\n        ? \"Kami terima pesan campaign CXCT03. Jika butuh bantuan admin, langsung ketik *admin* ya.\"\n        : \"Pesan campaign sudah kami terima. Tim kami akan follow-up segera.\"\n}) }}"
+        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"traceId\": $node[\"WA Webhook\"].json.body?.traceId || $node[\"WA Webhook\"].json.traceId || ( $node[\"WA Webhook\"].json.body?.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.body?.messageId) : ( $node[\"WA Webhook\"].json.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.messageId) : \"\" ) ),\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": $node[\"WA Webhook\"].json.body?.broadcastCode === \"CXCT01\"\n    ? \"Promo CXCT01 aktif. Tim kami siap bantu proses booking/pickup kamu sekarang.\"\n    : $node[\"WA Webhook\"].json.body?.broadcastCode === \"CXCT02\"\n      ? \"Terima kasih follow-up CXCT02. Boleh kirim jadwal yang kamu inginkan?\"\n      : $node[\"WA Webhook\"].json.body?.broadcastCode === \"CXCT03\"\n        ? \"Kami terima pesan campaign CXCT03. Jika butuh bantuan admin, langsung ketik *admin* ya.\"\n        : \"Pesan campaign sudah kami terima. Tim kami akan follow-up segera.\"\n}) }}"
       }
     },
     {

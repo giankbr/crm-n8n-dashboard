@@ -36,5 +36,13 @@ export const config = {
       process.env.WHATSAPP_SWAGGER_PASSWORD ||
       "admin123",
     apiKey: process.env.WAHA_API_KEY || ""
+  },
+  llm: {
+    provider: process.env.AI_FALLBACK_PROVIDER || "none",
+    baseUrl: process.env.AI_BASE_URL || "http://host.docker.internal:11434/v1",
+    model: process.env.AI_MODEL || "qwen/qwen3.5-35b-a3b",
+    apiKey: process.env.OPENAI_API_KEY || "",
+    docsDir: process.env.DOCS_DIR || "/app/docs",
+    docsTopK: Number(process.env.DOCS_TOP_K || 4)
   }
 };

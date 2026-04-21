@@ -12,3 +12,27 @@ export async function escalate({ threadId, type, targetRole, reason }) {
     status: "open"
   };
 }
+
+export async function resolveEscalationsByThread(threadId, notes = null) {
+  try {
+    const [result] = await pool.query(
+      `UPDATE escalations
+       SET status = 'resolved',
+           notes = COALESCE(?, notes),
+           resolved_at = NOW()
+       WHERE thread_id = ?
+         AND status IN ('open', 'in_progress')`,
+      [notes, threadId]
+    );
+    return { updated: result.affectedRows };
+  } catch {
+    const [fallback] = await pool.query(
+      `UPDATE escalations
+       SET status = 'resolved'
+       WHERE thread_id = ?
+         AND status IN ('open', 'in_progress')`,
+      [threadId]
+    );
+    return { updated: fallback.affectedRows };
+  }
+}

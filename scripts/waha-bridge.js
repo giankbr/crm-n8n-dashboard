@@ -1,3 +1,5 @@
+import { extractIdentityFromIncoming } from "./wa-identity.js";
+
 const WAHA_BASE_URL = process.env.WAHA_BASE_URL || "http://localhost:3000";
 const WAHA_API_KEY = process.env.WAHA_API_KEY || "";
 const WAHA_SESSION = process.env.WAHA_SESSION || "default";
@@ -62,19 +64,20 @@ function normalizeIncoming(chat) {
   if (!messageId) return null;
   if (seenMessageIds.has(messageId)) return null;
 
-  const chatId = String(chat?.id?._serialized || msg.from || "");
-  const rawFrom = String(msg.from || chatId || "");
-  const waFromChatId = chatId.includes("@c.us") ? chatId.replace(/@c\.us$/, "") : "";
-  const waFromMsg = rawFrom.replace(/@.+$/, "");
-  const waNumber = String(waFromChatId || waFromMsg).replace(/[^\d]/g, "");
+  const { chatId, waNumber } = extractIdentityFromIncoming({
+    chatId: chat?.id?._serialized,
+    from: msg.from
+  });
   const body = String(msg.body || "").trim();
   if (!waNumber || !body) return null;
+  const traceId = `wa-${messageId}`;
 
   return {
     waNumber,
     chatId,
     body,
     messageId,
+    traceId,
     timestamp: new Date((msg.timestamp || Date.now() / 1000) * 1000).toISOString()
   };
 }
@@ -118,6 +121,7 @@ async function tick() {
       await forwardToN8n(incoming);
       seenMessageIds.add(incoming.messageId);
       log("info", "Forwarded message", {
+        traceId: incoming.traceId,
         from: incoming.waNumber,
         messageId: incoming.messageId,
         timestamp: incoming.timestamp

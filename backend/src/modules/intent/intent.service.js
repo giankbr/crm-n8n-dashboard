@@ -10,6 +10,19 @@ const rules = [
   { intent: "konsultasi", subflow: "E", patterns: [/oli/i, /rekomendasi/i, /gejala/i, /harga/i] }
 ];
 
+function hasBookingSignal(text = "") {
+  const normalized = String(text || "").toLowerCase();
+  const hasBookingWord = /\b(booking|book|jadwal|reservasi|reserve)\b/i.test(normalized);
+  const hasServiceWord = /\b(servis|service)\b/i.test(normalized);
+  const hasTimeHint =
+    /\b(jam|pukul|besok|lusa|hari ini|senin|selasa|rabu|kamis|jumat|sabtu|minggu|tanggal)\b/i.test(normalized) ||
+    /\b\d{1,2}[:.]\d{2}\b/.test(normalized);
+
+  // "service/servis" alone should not auto-create booking.
+  if (hasServiceWord && !hasBookingWord && !hasTimeHint) return false;
+  return hasBookingWord || (hasServiceWord && hasTimeHint);
+}
+
 export async function classifyIntent({ threadId, text, metadata }) {
   const resolvedThreadId = resolveThreadId(threadId, metadata);
   const code = metadata?.broadcastCode;
@@ -18,6 +31,9 @@ export async function classifyIntent({ threadId, text, metadata }) {
     classification = { intent: "broadcast_cxct", subflow: "I", confidence: 0.95 };
   } else {
     for (const rule of rules) {
+      if (rule.intent === "booking_servis" && !hasBookingSignal(text || "")) {
+        continue;
+      }
       if (rule.patterns.some((p) => p.test(text || ""))) {
         classification = { intent: rule.intent, subflow: rule.subflow, confidence: 0.8 };
         break;

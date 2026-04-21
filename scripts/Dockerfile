@@ -6,8 +6,8 @@ WORKDIR /app
 COPY package.json* ./
 RUN if [ -f package.json ]; then npm install --production; fi
 
-# Copy bridge script
-COPY waha-bridge.js ./
+# Copy bridge scripts
+COPY *.js ./
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
