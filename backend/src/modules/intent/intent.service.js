@@ -18,7 +18,6 @@ function hasBookingSignal(text = "") {
     /\b(jam|pukul|besok|lusa|hari ini|senin|selasa|rabu|kamis|jumat|sabtu|minggu|tanggal)\b/i.test(normalized) ||
     /\b\d{1,2}[:.]\d{2}\b/.test(normalized);
 
-  // "service/servis" alone should not auto-create booking.
   if (hasServiceWord && !hasBookingWord && !hasTimeHint) return false;
   return hasBookingWord || (hasServiceWord && hasTimeHint);
 }
@@ -27,6 +26,21 @@ export async function classifyIntent({ threadId, text, metadata }) {
   const resolvedThreadId = resolveThreadId(threadId, metadata);
   const code = metadata?.broadcastCode;
   let classification = { intent: "fallback_admin", subflow: "H", confidence: 0.4 };
+
+  if (resolvedThreadId) {
+    const [draftRows] = await pool.query(
+      `SELECT thread_id
+       FROM booking_drafts
+       WHERE thread_id = ?
+       LIMIT 1`,
+      [resolvedThreadId]
+    );
+    if (draftRows.length > 0) {
+      classification = { intent: "booking_servis", subflow: "A", confidence: 0.95 };
+    }
+  }
+
+  if (classification.subflow !== "A") {
   if (code && ["CXCT01", "CXCT02", "CXCT03"].includes(code)) {
     classification = { intent: "broadcast_cxct", subflow: "I", confidence: 0.95 };
   } else {
@@ -39,6 +53,7 @@ export async function classifyIntent({ threadId, text, metadata }) {
         break;
       }
     }
+  }
   }
 
   if (!resolvedThreadId) {

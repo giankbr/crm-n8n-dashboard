@@ -10,6 +10,7 @@ const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
 
 const seenMessageIds = new Set();
+const seenPayloadSignatures = new Map();
 
 // Stats tracking
 const stats = {
@@ -70,6 +71,9 @@ function normalizeIncoming(chat) {
   });
   const body = String(msg.body || "").trim();
   if (!waNumber || !body) return null;
+  const msgTs = Number(msg.timestamp || 0);
+  const signature = `${waNumber}|${body.toLowerCase()}|${msgTs}`;
+  if (seenPayloadSignatures.has(signature)) return null;
   const traceId = `wa-${messageId}`;
 
   return {
@@ -77,6 +81,7 @@ function normalizeIncoming(chat) {
     chatId,
     body,
     messageId,
+    signature,
     traceId,
     timestamp: new Date((msg.timestamp || Date.now() / 1000) * 1000).toISOString()
   };
@@ -120,6 +125,13 @@ async function tick() {
       stats.messagesProcessed++;
       await forwardToN8n(incoming);
       seenMessageIds.add(incoming.messageId);
+      seenPayloadSignatures.set(incoming.signature, Date.now());
+      if (seenPayloadSignatures.size > 5000) {
+        const now = Date.now();
+        for (const [key, ts] of seenPayloadSignatures.entries()) {
+          if (now - ts > 30 * 60 * 1000) seenPayloadSignatures.delete(key);
+        }
+      }
       log("info", "Forwarded message", {
         traceId: incoming.traceId,
         from: incoming.waNumber,

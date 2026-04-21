@@ -137,8 +137,30 @@ function extractVehicle(text = "") {
 function extractName(text = "") {
   const t = String(text || "").trim();
   const match = t.match(/\b(nama\s*(saya)?|saya)\s+([a-zA-Z][a-zA-Z\s'.-]{1,40})$/i);
-  if (!match) return null;
-  return String(match[3] || "").trim();
+  if (match) return String(match[3] || "").trim();
+
+  // Accept simple direct name input (e.g. "gian") when user answers
+  // booking name prompt without "nama saya ...".
+  const simple = t.match(/^[a-zA-Z][a-zA-Z\s'.-]{1,40}$/);
+  if (!simple) return null;
+
+  const lowered = t.toLowerCase();
+  const stopwords = new Set([
+    "ya",
+    "iya",
+    "tidak",
+    "gak",
+    "ga",
+    "no",
+    "yes",
+    "booking",
+    "servis",
+    "service",
+    "pickup",
+    "jemput"
+  ]);
+  if (stopwords.has(lowered)) return null;
+  return t;
 }
 
 function extractPickupFlag(text = "") {

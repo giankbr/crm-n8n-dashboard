@@ -11,18 +11,46 @@ const faqTemplates = {
 let cachedDocs = null;
 let cachedAt = 0;
 
-function scoreByKeywordOverlap(query, content) {
-  const tokens = String(query || "")
+const querySynonyms = {
+  booking: ["book", "jadwal", "reservasi", "reserve", "servis", "service"],
+  pickup: ["jemput", "antar", "pick up"],
+  jam: ["buka", "tutup", "operasional"],
+  cabang: ["lokasi", "terdekat", "branch"],
+  harga: ["biaya", "tarif", "cost"],
+  admin: ["cs", "customer service", "operator"]
+};
+
+function tokenize(text = "") {
+  return String(text || "")
     .toLowerCase()
     .split(/[^a-z0-9]+/i)
-    .filter((t) => t.length >= 3);
+    .filter((t) => t.length >= 2);
+}
+
+function expandQueryTokens(tokens) {
+  const expanded = new Set(tokens);
+  for (const token of tokens) {
+    for (const [key, synonyms] of Object.entries(querySynonyms)) {
+      if (token === key || synonyms.includes(token)) {
+        expanded.add(key);
+        for (const synonym of synonyms) expanded.add(synonym);
+      }
+    }
+  }
+  return [...expanded];
+}
+
+function scoreByKeywordOverlap(query, content) {
+  const tokens = expandQueryTokens(tokenize(query));
   if (tokens.length === 0) return 0;
   const text = String(content || "").toLowerCase();
-  let score = 0;
+  let matched = 0;
   for (const token of tokens) {
-    if (text.includes(token)) score += 1;
+    if (text.includes(token)) matched += 1;
   }
-  return score / tokens.length;
+  const overlap = matched / tokens.length;
+  const headingBonus = /\b(q:|faq|pertanyaan|jawab|answer)\b/i.test(text) ? 0.08 : 0;
+  return Math.min(1, overlap + headingBonus);
 }
 
 async function loadDocsCorpus() {
@@ -47,7 +75,7 @@ async function retrieveDocsContext(query) {
     const docs = await loadDocsCorpus();
     const scored = docs
       .map((d) => ({ ...d, score: scoreByKeywordOverlap(query, d.content) }))
-      .filter((d) => d.score > 0)
+      .filter((d) => d.score >= 0.12)
       .sort((a, b) => b.score - a.score)
       .slice(0, config.llm.docsTopK);
     return scored.map((d) => ({

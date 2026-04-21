@@ -18,6 +18,7 @@ Complete documentation for the WhatsApp AI Chatbot CRM System.
 - **[DATABASE.md](DATABASE.md)** — Database schema, migrations, SQL queries, backup/restore
 - **[WAHA_BRIDGE.md](WAHA_BRIDGE.md)** — WAHA polling bridge, deployment, monitoring
 - **[N8N_WORKFLOWS.md](N8N_WORKFLOWS.md)** — n8n workflow implementation guide (3 workflows, subflow A-H + roadmap)
+- **[KNOWLEDGE_BASE.md](KNOWLEDGE_BASE.md)** — Curated FAQ knowledge base for docs-grounded AI fallback
 
 ### 🔧 Configuration
 - **[../.env.example](../.env.example)** — Environment variables with detailed descriptions
