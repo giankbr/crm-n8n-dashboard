@@ -5,29 +5,39 @@ import { config } from "../../config.js";
 
 const faqTemplates = {
   jam_buka: [
-    "Kita buka hari kerja jam 08:00-17:00, weekend jam 08:00-16:00 ya. Kalau mau, aku bantu lanjut booking sekarang.",
-    "Jam operasional kami weekday 08:00-17:00 dan weekend 08:00-16:00. Mau sekalian aku bantu atur jadwal servisnya?",
-    "Bengkel buka Senin-Jumat 08:00-17:00, Sabtu-Minggu 08:00-16:00. Kalau cocok, kita lanjut booking ya."
+    "Kami buka hari kerja jam 08:00-17:00, weekend jam 08:00-16:00 ya. Kalau mau, kami bantu lanjut booking sekarang.",
+    "Jam operasional kami weekday 08:00-17:00 dan weekend 08:00-16:00. Mau sekalian kami bantu atur jadwal servisnya?",
+    "Bengkel buka Senin-Jumat 08:00-17:00, Sabtu-Minggu 08:00-16:00. Kalau cocok, kami lanjut booking ya."
   ],
   default: [
-    "Siap, ceritain dulu kebutuhan servisnya ya, nanti aku bantu arahin yang paling pas.",
-    "Boleh, jelasin sedikit keluhan atau kebutuhan motornya dulu. Dari situ aku bantu pilih langkah berikutnya.",
-    "Oke, kasih info singkat soal kebutuhan servisnya, biar aku bantu cek opsi yang paling cocok."
+    "Siap, ceritain dulu kebutuhan servisnya ya, nanti kami bantu arahin yang paling pas.",
+    "Boleh, jelasin sedikit keluhan atau kebutuhan motornya dulu. Dari situ kami bantu pilih langkah berikutnya.",
+    "Oke, kasih info singkat soal kebutuhan servisnya, biar kami bantu cek opsi yang paling cocok."
   ],
   oilRecommendation: [
-    "Siap, buat rekomendasi oli biar tepat aku perlu tipe motor dan kilometer terakhir dulu ya.",
-    "Boleh banget. Kirim tipe motor + kilometer saat ini ya, nanti aku bantu rekomendasi oli yang pas.",
+    "Siap, buat rekomendasi oli biar tepat kami perlu tipe motor dan kilometer terakhir dulu ya.",
+    "Boleh banget. Kirim tipe motor + kilometer saat ini ya, nanti kami bantu rekomendasi oli yang pas.",
     "Untuk oli, paling aman disesuaikan tipe motor dan kilometer terakhir. Share dua info itu ya."
   ],
   docsMissing: [
-    "Makasih ya, pertanyaannya udah masuk. Biar nggak salah info, aku bantu teruskan ke tim admin dulu ya.",
-    "Noted ya, biar jawabannya akurat aku teruskan dulu ke admin. Nanti tim kami lanjut bantu kamu.",
-    "Aku catat pertanyaannya. Supaya infonya valid, aku lempar dulu ke admin ya."
+    "Makasih ya, pertanyaannya udah masuk. Biar nggak salah info, kami bantu teruskan ke tim admin dulu ya.",
+    "Noted ya, biar jawabannya akurat kami teruskan dulu ke admin. Nanti tim kami lanjut bantu kamu.",
+    "Kami catat pertanyaannya. Supaya infonya valid, kami lempar dulu ke admin ya."
   ],
   ollamaError: [
-    "Siap, aku belum berani jawab ini sekarang biar nggak ngasih info keliru. Aku teruskan ke admin dulu ya.",
-    "Maaf, aku belum bisa jawab otomatis untuk yang ini sekarang. Aku bantu teruskan ke admin ya.",
-    "Biar aman dan akurat, untuk ini aku teruskan ke tim admin dulu ya."
+    "Siap, kami belum berani jawab ini sekarang biar nggak ngasih info keliru. Kami teruskan ke admin dulu ya.",
+    "Maaf, kami belum bisa jawab otomatis untuk yang ini sekarang. Kami bantu teruskan ke admin ya.",
+    "Biar aman dan akurat, untuk ini kami teruskan ke tim admin dulu ya."
+  ],
+  complaintFallback: [
+    "Maaf ya atas ketidaknyamanannya. Supaya cepat ditangani, kami teruskan langsung ke admin sekarang.",
+    "Terima kasih sudah kasih tahu kendalanya. Kami eskalasi dulu ke admin biar segera ditindaklanjuti.",
+    "Kami paham ini bikin nggak nyaman. Laporan kamu kami kirim ke admin dulu ya."
+  ],
+  routingFallback: [
+    "Boleh kirim titik lokasi atau nama area kamu ya, biar kami cek cabang terdekat.",
+    "Untuk cek cabang terdekat, share lokasi kamu dulu ya. Nanti kami bantu pilihkan.",
+    "Siap, kami bantu routing cabang. Kirim lokasi atau patokan area kamu dulu ya."
   ]
 };
 
@@ -184,8 +194,27 @@ export async function buildKnowledgeReply(payload) {
 
   // Outside explicit rule routes, use docs-grounded LLM fallback.
   if (source === "fallback" && config.llm.provider === "ollama") {
+    const complaintSignal = /\b(komplain|keluhan|kecewa|buruk|marah|lemot|nggak enak)\b/i.test(text);
+    const routingSignal = /\b(cabang|lokasi|terdekat|alamat|arah|route|routing)\b/i.test(text);
+
     const contexts = await retrieveDocsContext(text);
     if (contexts.length === 0) {
+      if (complaintSignal) {
+        return {
+          reply: pickTemplate(faqTemplates.complaintFallback, text),
+          route: "fallback_complaint_escalation",
+          grounded: false,
+          sources: []
+        };
+      }
+      if (routingSignal) {
+        return {
+          reply: pickTemplate(faqTemplates.routingFallback, text),
+          route: "fallback_routing_prompt",
+          grounded: false,
+          sources: []
+        };
+      }
       return {
         reply: pickTemplate(faqTemplates.docsMissing, text),
         route: "fallback_docs_missing",

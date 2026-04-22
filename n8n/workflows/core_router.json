@@ -281,7 +281,7 @@
         "url": "http://backend:4000/api/waha/send-text",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"traceId\": $node[\"WA Webhook\"].json.body?.traceId || $node[\"WA Webhook\"].json.traceId || ( $node[\"WA Webhook\"].json.body?.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.body?.messageId) : ( $node[\"WA Webhook\"].json.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.messageId) : \"\" ) ),\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": $node[\"Validate Booking (A)\"].json.reply || \"Siap, kita lengkapi data bookingnya dulu ya.\"\n}) }}"
+        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"traceId\": $node[\"WA Webhook\"].json.body?.traceId || $node[\"WA Webhook\"].json.traceId || ( $node[\"WA Webhook\"].json.body?.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.body?.messageId) : ( $node[\"WA Webhook\"].json.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.messageId) : \"\" ) ),\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": $node[\"Validate Booking (A)\"].json.reply || \"Siap, kami bantu lengkapi data bookingnya dulu ya.\"\n}) }}"
       }
     },
     {
@@ -423,7 +423,7 @@
         "url": "http://backend:4000/api/waha/send-text",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"traceId\": $node[\"WA Webhook\"].json.body?.traceId || $node[\"WA Webhook\"].json.traceId || ( $node[\"WA Webhook\"].json.body?.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.body?.messageId) : ( $node[\"WA Webhook\"].json.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.messageId) : \"\" ) ),\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Untuk saat ini layanan pickup maksimal 7 km dari bengkel ya. Kalau berkenan, aku bantu booking datang langsung.\"\n}) }}"
+        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"traceId\": $node[\"WA Webhook\"].json.body?.traceId || $node[\"WA Webhook\"].json.traceId || ( $node[\"WA Webhook\"].json.body?.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.body?.messageId) : ( $node[\"WA Webhook\"].json.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.messageId) : \"\" ) ),\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": \"Untuk saat ini layanan pickup maksimal 7 km dari bengkel ya. Kalau berkenan, kami bantu booking datang langsung.\"\n}) }}"
       }
     },
     {
@@ -559,7 +559,7 @@
         "url": "http://backend:4000/api/waha/send-text",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"traceId\": $node[\"WA Webhook\"].json.body?.traceId || $node[\"WA Webhook\"].json.traceId || ( $node[\"WA Webhook\"].json.body?.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.body?.messageId) : ( $node[\"WA Webhook\"].json.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.messageId) : \"\" ) ),\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": $json.reply || \"Boleh jelasin gejala motornya dulu ya? Nanti aku bantu kasih rekomendasi awal.\"\n}) }}"
+        "jsonBody": "={{ ({\n\"session\": \"default\",\n  \"traceId\": $node[\"WA Webhook\"].json.body?.traceId || $node[\"WA Webhook\"].json.traceId || ( $node[\"WA Webhook\"].json.body?.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.body?.messageId) : ( $node[\"WA Webhook\"].json.messageId ? (\"wa-\" + $node[\"WA Webhook\"].json.messageId) : \"\" ) ),\n  \"chatId\": $node[\"WA Webhook\"].json.body?.chatId || $node[\"WA Webhook\"].json.body?.waNumber || $node[\"WA Webhook\"].json.waNumber || $node[\"WA Webhook\"].json.from || \"\",\n  \"text\": $json.reply || \"Boleh jelasin gejala motornya dulu ya? Nanti kami bantu kasih rekomendasi awal.\"\n}) }}"
       }
     },
     {

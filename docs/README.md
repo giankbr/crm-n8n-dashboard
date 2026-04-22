@@ -19,6 +19,7 @@ Complete documentation for the WhatsApp AI Chatbot CRM System.
 - **[WAHA_BRIDGE.md](WAHA_BRIDGE.md)** — WAHA polling bridge, deployment, monitoring
 - **[N8N_WORKFLOWS.md](N8N_WORKFLOWS.md)** — n8n workflow implementation guide (3 workflows, subflow A-H + roadmap)
 - **[KNOWLEDGE_BASE.md](KNOWLEDGE_BASE.md)** — Curated FAQ knowledge base for docs-grounded AI fallback
+- **[VOICE_GUIDELINES.md](VOICE_GUIDELINES.md)** — Brand voice guideline for customer-facing replies
 
 ### 🔧 Configuration
 - **[../.env.example](../.env.example)** — Environment variables with detailed descriptions
@@ -68,6 +69,7 @@ Complete documentation for the WhatsApp AI Chatbot CRM System.
 | WAHA_BRIDGE.md | 9.0 KB | Backend, DevOps | Message polling bridge setup |
 | DASHBOARD_SETUP.md | 14.2 KB | Frontend, DevOps | React dashboard & API |
 | N8N_WORKFLOWS.md | 18.3 KB | n8n builders | Complete workflow implementation |
+| VOICE_GUIDELINES.md | 3.0 KB | Backend, n8n builders | Reply tone and wording standard |
 | workflow.md | 9.8 KB | Architects, PMs | Business requirements & flows |
 | IMPLEMENTATION.md | 2.4 KB | All | High-level implementation status |
 
@@ -191,6 +193,7 @@ Legend: **Implemented** = ready in current default stack, **Partial** = availabl
 ├── WAHA_BRIDGE.md  ← Message polling bridge
 ├── DASHBOARD_SETUP.md ← Frontend & API
 ├── N8N_WORKFLOWS.md ← Workflow implementation
+├── VOICE_GUIDELINES.md ← Reply tone guideline
 ├── workflow.md     ← Business requirements
 └── IMPLEMENTATION.md ← Status overview
 ```
