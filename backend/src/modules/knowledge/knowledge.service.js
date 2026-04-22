@@ -4,9 +4,43 @@ import path from "path";
 import { config } from "../../config.js";
 
 const faqTemplates = {
-  jam_buka: "Kami buka weekday 08:00-17:00 dan weekend 08:00-16:00. Bisa saya bantu booking?",
-  default: "Bisa dibantu jelaskan kebutuhan servisnya? Saya bantu cek jadwal terbaik."
+  jam_buka: [
+    "Kita buka hari kerja jam 08:00-17:00, weekend jam 08:00-16:00 ya. Kalau mau, aku bantu lanjut booking sekarang.",
+    "Jam operasional kami weekday 08:00-17:00 dan weekend 08:00-16:00. Mau sekalian aku bantu atur jadwal servisnya?",
+    "Bengkel buka Senin-Jumat 08:00-17:00, Sabtu-Minggu 08:00-16:00. Kalau cocok, kita lanjut booking ya."
+  ],
+  default: [
+    "Siap, ceritain dulu kebutuhan servisnya ya, nanti aku bantu arahin yang paling pas.",
+    "Boleh, jelasin sedikit keluhan atau kebutuhan motornya dulu. Dari situ aku bantu pilih langkah berikutnya.",
+    "Oke, kasih info singkat soal kebutuhan servisnya, biar aku bantu cek opsi yang paling cocok."
+  ],
+  oilRecommendation: [
+    "Siap, buat rekomendasi oli biar tepat aku perlu tipe motor dan kilometer terakhir dulu ya.",
+    "Boleh banget. Kirim tipe motor + kilometer saat ini ya, nanti aku bantu rekomendasi oli yang pas.",
+    "Untuk oli, paling aman disesuaikan tipe motor dan kilometer terakhir. Share dua info itu ya."
+  ],
+  docsMissing: [
+    "Makasih ya, pertanyaannya udah masuk. Biar nggak salah info, aku bantu teruskan ke tim admin dulu ya.",
+    "Noted ya, biar jawabannya akurat aku teruskan dulu ke admin. Nanti tim kami lanjut bantu kamu.",
+    "Aku catat pertanyaannya. Supaya infonya valid, aku lempar dulu ke admin ya."
+  ],
+  ollamaError: [
+    "Siap, aku belum berani jawab ini sekarang biar nggak ngasih info keliru. Aku teruskan ke admin dulu ya.",
+    "Maaf, aku belum bisa jawab otomatis untuk yang ini sekarang. Aku bantu teruskan ke admin ya.",
+    "Biar aman dan akurat, untuk ini aku teruskan ke tim admin dulu ya."
+  ]
 };
+
+function pickTemplate(options, seed = "") {
+  const items = Array.isArray(options) ? options : [String(options || "")];
+  if (items.length === 0) return "";
+  const key = String(seed || "seed");
+  let hash = 0;
+  for (let i = 0; i < key.length; i += 1) {
+    hash = (hash * 31 + key.charCodeAt(i)) % 2147483647;
+  }
+  return items[Math.abs(hash) % items.length];
+}
 
 let cachedDocs = null;
 let cachedAt = 0;
@@ -96,7 +130,7 @@ async function askOllamaStrict({ question, contexts }) {
     )
     .join("\n");
   const systemPrompt =
-    "Kamu adalah asisten CRM bengkel. Jawab HANYA berdasarkan konteks dokumen yang diberikan. Jika jawaban tidak ada di konteks, jawab singkat bahwa informasi belum tersedia di knowledge base dan tawarkan eskalasi ke admin.";
+    "Kamu adalah asisten CRM bengkel dengan gaya bahasa natural dan hangat seperti CS manusia. Jawab HANYA berdasarkan konteks dokumen yang diberikan. Jika jawaban tidak ada di konteks, jawab singkat dan tawarkan eskalasi ke admin tanpa mengarang informasi.";
   const userPrompt = `Pertanyaan user: ${question}\n\nKonteks:\n${contextText}\n\nJawab dalam Bahasa Indonesia, ringkas dan operasional.`;
 
   const headers = { "Content-Type": "application/json" };
@@ -139,11 +173,11 @@ export async function buildKnowledgeReply(payload) {
   const text = (payload.text || "").toLowerCase();
   const source = payload.source || "general";
   if (text.includes("jam") || text.includes("buka") || text.includes("tutup")) {
-    return { reply: faqTemplates.jam_buka, route: "faq_time" };
+    return { reply: pickTemplate(faqTemplates.jam_buka, text), route: "faq_time" };
   }
   if (text.includes("oli")) {
     return {
-      reply: "Untuk oli, kami rekomendasikan sesuai tipe motor dan kilometer terakhir. Boleh kirim tipe motor + kilometer saat ini?",
+      reply: pickTemplate(faqTemplates.oilRecommendation, text),
       route: "recommendation"
     };
   }
@@ -153,7 +187,7 @@ export async function buildKnowledgeReply(payload) {
     const contexts = await retrieveDocsContext(text);
     if (contexts.length === 0) {
       return {
-        reply: "Untuk pertanyaan ini, info di knowledge base kami belum cukup. Saya teruskan ke admin ya.",
+        reply: pickTemplate(faqTemplates.docsMissing, text),
         route: "fallback_docs_missing",
         grounded: false,
         sources: []
@@ -169,7 +203,7 @@ export async function buildKnowledgeReply(payload) {
       };
     } catch {
       return {
-        reply: "Saya belum bisa jawab otomatis saat ini. Pesan kamu saya teruskan ke admin ya.",
+        reply: pickTemplate(faqTemplates.ollamaError, text),
         route: "fallback_ollama_error",
         grounded: false,
         sources: contexts.map((c) => ({ source: c.source, score: c.score }))
@@ -177,5 +211,5 @@ export async function buildKnowledgeReply(payload) {
     }
   }
 
-  return { reply: faqTemplates.default, route: "general" };
+  return { reply: pickTemplate(faqTemplates.default, text), route: "general" };
 }
