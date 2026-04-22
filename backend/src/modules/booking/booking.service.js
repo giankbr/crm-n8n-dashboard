@@ -230,12 +230,12 @@ function nextMissingField(draft) {
 }
 
 function questionForMissing(field) {
-  if (field === "name") return "Sebelum booking, boleh info nama kamu dulu ya?";
-  if (field === "plate") return "Sebelum booking, kirim dulu nopol motor kamu ya. Contoh: AD 1234 AB.";
-  if (field === "vehicle") return "Siap. Jenis motornya apa ya? (contoh: Vario 125 / Beat / NMAX)";
-  if (field === "schedule") return "Oke, mau dijadwalkan kapan? Tulis hari dan jam, contoh: besok jam 10.";
-  if (field === "pickup") return "Perlu layanan pickup motor juga? Jawab: ya / tidak.";
-  return "Boleh lengkapi data booking dulu ya.";
+  if (field === "name") return "Siap, sebelum booking lanjut boleh info nama kamu dulu ya?";
+  if (field === "plate") return "Oke, lanjut ya. Kabarin nopol motornya dulu (contoh: AD 1234 AB).";
+  if (field === "vehicle") return "Sip. Jenis motornya apa ya? (contoh: Vario 125 / Beat / NMAX)";
+  if (field === "schedule") return "Siap, maunya dijadwalkan kapan? Contoh: besok jam 10.";
+  if (field === "pickup") return "Perlu layanan pickup motor juga? Balas aja: ya / tidak.";
+  return "Boleh, kita lengkapi data bookingnya dulu ya.";
 }
 
 export async function processBookingForm({ threadId, text }) {
@@ -310,7 +310,7 @@ export async function processBookingForm({ threadId, text }) {
   if (!validation.valid) {
     return {
       completed: false,
-      reply: "Jadwal terlalu mepet jam tutup. Coba pilih jadwal lain ya (contoh: besok jam 10).",
+      reply: "Jadwalnya agak mepet ke jam tutup nih. Boleh pilih jam lain ya, misalnya besok jam 10.",
       missing: "schedule"
     };
   }
